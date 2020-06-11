@@ -9,6 +9,8 @@
 ## Fancy Features in Mind
 
 * visitation plot (figure 6.)
+* gin package
+* train / evaluate
 * fancy plots
 * PyTorch anomaly detection
 * w&b
@@ -47,8 +49,8 @@
     * instruction & record
   * commit
 * HRL(HIRO) framework understanding (~1 day)
-* DDPG understanding (~1 day)
-* DDPG Implementation (1~2 day)
+* TD3 understanding (~1 day)
+* TD3 Implementation (1~2 day)
 * HIRO Implementation (1~2day)
 * Debug & Test (1~2 day)
 * Util Functions (Debugging Related) (1~2 day)
@@ -68,9 +70,18 @@
 
 * Paper
 
-  > Environments use the MuJoCo simulator with $dt = 0.02$ and frame skip set to 5
+  * Environments use the MuJoCo simulator with $dt = 0.02$ and frame skip set to 5
 
-  
+  * Gather:
+    *  Rllab
+    * gear range
+    * activity range
+    * sensor span
+    * depth readings
+    * episode length
+    * default reward
 
 * Code Base
+
+  * 
 
