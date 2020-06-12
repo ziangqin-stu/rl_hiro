@@ -1,15 +1,18 @@
 """Test Ant Enviornments"""
-import gym, os
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
+
+import gym
 from gym.wrappers import Monitor
 from pyvirtualdisplay import Display
-
 from environments.create_maze_env import create_maze_env
 
 env_names = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']
 
 
 def show_env_property(env_name):
-    env = create_maze_env(env_name=env_name)
+    env = create_maze_env.create_maze_env(env_name=env_name)
     print("\n\n-------------------------------------------------------------------------------------------------------")
     print(
         "{}: \n    MAZE_HEIGHT: {}\n    MAZE_SIZE_SCALING:{}\n    MAZE_STRUCTURE: {}".format(env_name, env.MAZE_HEIGHT,
