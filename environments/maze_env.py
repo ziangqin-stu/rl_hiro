@@ -7,10 +7,10 @@ import math
 import numpy as np
 import gym
 
-from environment import maze_env_utils
+from environments import maze_env_utils
 
 # Directory that contains mujoco xml files.
-MODEL_DIR = 'environment/assets'
+MODEL_DIR = 'environments/assets'
 
 
 class MazeEnv(gym.Env):

@@ -1,0 +1,16 @@
+
+    > Collecting random trajectory...
+Traceback (most recent call last):
+  File "/mnt/c/work_space_2/impl_data-effiient-hrl/test/test_env.py", line 86, in <module>
+    interact_envs_display()
+  File "/mnt/c/work_space_2/impl_data-effiient-hrl/test/test_env.py", line 78, in interact_envs_display
+    interact_env(env_name, video=video)
+  File "/mnt/c/work_space_2/impl_data-effiient-hrl/test/test_env.py", line 62, in interact_env
+    wandb.log({"video": wandb.Video(frame_buffer, fps=30, format="mp4")})
+  File "/home/ziang/miniconda3/envs/gail/lib/python3.6/site-packages/wandb/data_types.py", line 723, in __init__
+    self.encode()
+  File "/home/ziang/miniconda3/envs/gail/lib/python3.6/site-packages/wandb/data_types.py", line 728, in encode
+    tensor = self._prepare_video(self.data)
+  File "/home/ziang/miniconda3/envs/gail/lib/python3.6/site-packages/wandb/data_types.py", line 769, in _prepare_video
+    raise ValueError("Video must be atleast 4 dimensions: time, channels, height, width")
+ValueError: Video must be atleast 4 dimensions: time, channels, height, width

@@ -1,6 +1,10 @@
 """
 Project utils
 """
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
+from environments.create_maze_env import create_maze_env
 
 
 class ParamDict(dict):
@@ -19,3 +23,16 @@ class ParamDict(dict):
 
     def __setstate__(self, d):
         self = d
+
+
+def get_critic():
+    pass
+
+
+def get_actor():
+    pass
+
+
+def get_env(env_name):
+    env = create_maze_env(env_name=env_name)
+    return env

@@ -1,0 +1,60 @@
+2020-06-12 00:18:44,515 DEBUG   MainThread:2171 [wandb_config.py:_load_defaults():133] no defaults not found in config-defaults.yaml
+2020-06-12 00:18:44,711 DEBUG   MainThread:2171 [meta.py:_setup_code_git():49] probe for git information
+2020-06-12 00:18:44,811 DEBUG   MainThread:2171 [run_manager.py:__init__():547] Initialized sync for ziang-hiro/3hruutg4
+2020-06-12 00:18:44,820 INFO    MainThread:2171 [run_manager.py:wrap_existing_process():1147] wrapping existing process 2160
+2020-06-12 00:18:44,972 INFO    MainThread:2171 [run_manager.py:init_run():926] system metrics and metadata threads started
+2020-06-12 00:18:44,973 INFO    MainThread:2171 [run_manager.py:init_run():965] upserting run before process can begin, waiting at most 10 seconds
+2020-06-12 00:18:45,162 INFO    Thread-15 :2171 [run_manager.py:_upsert_run():1054] saving pip packages
+2020-06-12 00:18:45,164 INFO    Thread-15 :2171 [run_manager.py:_upsert_run():1056] initializing streaming files api
+2020-06-12 00:18:45,164 INFO    Thread-15 :2171 [run_manager.py:_upsert_run():1063] unblocking file change observer, beginning sync with W&B servers
+2020-06-12 00:18:45,164 INFO    MainThread:2171 [run_manager.py:wrap_existing_process():1164] informing user process we are ready to proceed
+2020-06-12 00:18:45,168 INFO    MainThread:2171 [run_manager.py:_sync_etc():1296] entering loop for messages from user process
+2020-06-12 00:18:45,702 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/config.yaml
+2020-06-12 00:18:45,871 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:18:45,871 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/requirements.txt
+2020-06-12 00:18:45,878 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-metadata.json
+2020-06-12 00:18:52,710 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:18:55,715 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:18:56,720 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:18:56,720 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-history.jsonl
+2020-06-12 00:18:56,723 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos/video_0_c1862850.mp4
+2020-06-12 00:18:56,724 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-summary.json
+2020-06-12 00:18:56,727 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media
+2020-06-12 00:18:56,728 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos
+2020-06-12 00:18:59,731 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:19:00,741 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:19:00,741 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-history.jsonl
+2020-06-12 00:19:00,742 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-summary.json
+2020-06-12 00:19:00,743 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos/video_1_22a17cd3.mp4
+2020-06-12 00:19:00,744 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos
+2020-06-12 00:19:01,743 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-metadata.json
+2020-06-12 00:19:03,750 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:19:03,751 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-history.jsonl
+2020-06-12 00:19:03,751 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-summary.json
+2020-06-12 00:19:03,752 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos/video_2_f49b7d80.mp4
+2020-06-12 00:19:03,752 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos
+2020-06-12 00:19:06,759 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:19:07,764 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:19:07,765 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-history.jsonl
+2020-06-12 00:19:07,765 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-summary.json
+2020-06-12 00:19:07,767 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos/video_3_d99ef2af.mp4
+2020-06-12 00:19:07,768 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos
+2020-06-12 00:19:09,771 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:19:10,640 INFO    MainThread:2171 [run_manager.py:_sync_etc():1319] received message from user process: {"exitcode": 0}
+2020-06-12 00:19:10,640 INFO    MainThread:2171 [run_manager.py:_sync_etc():1406] closing log streams and sending exitcode to W&B
+2020-06-12 00:19:10,642 INFO    MainThread:2171 [run_manager.py:shutdown():1070] shutting down system stats and metadata service
+2020-06-12 00:19:10,774 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/output.log
+2020-06-12 00:19:10,774 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-history.jsonl
+2020-06-12 00:19:10,774 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-summary.json
+2020-06-12 00:19:10,775 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos/video_4_47ce913d.mp4
+2020-06-12 00:19:10,775 INFO    Thread-4  :2171 [run_manager.py:_on_file_created():681] file/dir created: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-events.jsonl
+2020-06-12 00:19:10,776 INFO    Thread-4  :2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/media/videos
+2020-06-12 00:19:11,002 INFO    MainThread:2171 [run_manager.py:shutdown():1084] stopping streaming files and file change observer
+2020-06-12 00:19:11,789 INFO    MainThread:2171 [run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-metadata.json
+2020-06-12 00:19:12,935 INFO    MainThread:2171 [run_manager.py:_sync_etc():1425] rendering summary
+2020-06-12 00:19:12,937 INFO    MainThread:2171 [run_manager.py:_sync_etc():1457] syncing files to cloud storage
+2020-06-12 00:19:13,697 INFO    MainThread:2171 [run_manager.py:_sync_etc():1466] syncing complete: https://app.wandb.ai/clvr/ziang-hiro/runs/3hruutg4
+0-06-12 00:19:11,789 INFO    MainThread:2171 [3hruutg4:run_manager.py:_on_file_modified():692] file/dir modified: /mnt/c/work_space_2/impl_data-effiient-hrl/test/wandb/run-20200612_071841-3hruutg4/wandb-metadata.json
+2020-06-12 00:19:12,935 INFO    MainThread:2171 [3hruutg4:run_manager.py:_sync_etc():1425] rendering summary
+2020-06-12 00:19:12,937 INFO    MainThread:2171 [3hruutg4:run_manager.py:_sync_etc():1457] syncing files to cloud storage
+2020-06-12 00:19:13,697 INFO    MainThread:2171 [3hruutg4:run_manager.py:_sync_etc():1466] syncing complete: https://app.wandb.ai/clvr/ziang-hiro/runs/3hruutg4

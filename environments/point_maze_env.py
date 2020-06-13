@@ -1,5 +1,5 @@
-from environment.maze_env import MazeEnv
-from environment.point import PointEnv
+from environments.maze_env import MazeEnv
+from environments.point import PointEnv
 
 
 class PointMazeEnv(MazeEnv):

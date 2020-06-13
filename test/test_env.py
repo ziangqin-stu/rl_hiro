@@ -1,10 +1,15 @@
 """Test Ant Enviornments"""
 import sys
 import os
+
+import torch
+
 sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
 
+import numpy as np
+import wandb
+wandb.init(project="ziang-hiro")
 import gym
-from gym.wrappers import Monitor
 from pyvirtualdisplay import Display
 from environments.create_maze_env import create_maze_env
 
@@ -40,37 +45,42 @@ def show_envs():
         show_env_property(env_name)
 
 
-def interact_env(env_name, display=False):
+def interact_env(env_name, video=False):
     env = create_maze_env(env_name=env_name)
-    if display:
-        abs_path = os.path.abspath(os.path.dirname(os.getcwd()))
-        video_name = env_name + '_randtest.mp4'
-        save_path_name = os.path.join(abs_path, 'save', 'video', video_name)
-        env = Monitor(env, save_path_name, force=True)
     print('\n    > Collecting random trajectory...')
     done = False
     step = 1
     obs = env.reset()
+    frame_buffer = []
     while not (done or step > 100):
-        env.render()
+        if video:
+            frame_buffer.append(env.render(mode='rgb_array'))
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         step += 1
-    if display:
+    print('    > Finished collection', end='')
+    if video:
+        frame_buffer = np.array(frame_buffer).transpose(0, 3, 1, 2)
+        wandb.log({"video": wandb.Video(frame_buffer, fps=30, format="mp4")})
+        print(', saved video.\n')
         env.close()
-    print('    > Finished collection, saved video in {}.\n'.format(save_path_name))
+    else:
+        print('.\n')
     return env
 
 
-def interact_envs_display():
+def interact_envs_display(video=False):
     global env_names
-    display = Display(backend='xvfb')
-    display.start()
-    interact_env(env_names[0], display=True)
-    display.popen.kill()
+    if video:
+        display = Display(backend='xvfb')
+        display.start()
+    for env_name in env_names:
+        interact_env(env_name, video=video)
+    if video:
+        display.popen.kill()
 
 
 if __name__ == "__main__":
     gym.logger.set_level(40)
     # show_envs()
-    interact_envs_display()
+    interact_envs_display(video=False)

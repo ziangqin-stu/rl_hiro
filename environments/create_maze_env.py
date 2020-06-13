@@ -1,5 +1,5 @@
-from environment.ant_maze_env import AntMazeEnv
-from environment.point_maze_env import PointMazeEnv
+from environments.ant_maze_env import AntMazeEnv
+from environments.point_maze_env import PointMazeEnv
 
 # import tensorflow as tf
 # import gin.tf
