@@ -16,6 +16,17 @@ from experience_buffer import ExperienceBuffer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def h_function(state, goal, next_state):
+    return state + goal - next_state
+
+
+def intrinsic_reward(state, goal, next_state):
+    return -torch.pow((state, goal, next_state), 2)
+
+def done_judge_low(state, goal):
+    return torch.Tensor(state).equal(torch.Tensor(goal))
+
+
 def train(params):
     # Initialization
     env = get_env(params.env_name)
@@ -49,7 +60,7 @@ def train(params):
     for t in range(params.policy_params.max_timestep):
         # collect experience
         state_sequence, goal_sequence, action_sequence, reward_sequence, done_sequence = [], [], [], []
-        # low-level collecion
+        # low-level collection
         if t < params.policy_params.start_timestep:
             action = env.action_space.sample()
         else:
@@ -59,7 +70,7 @@ def train(params):
                       + np.random.normal(0, max_action * expl_noise, size=params.action_dim).astype(np.float32)).clamp(-max_action, max_action)
         next_state, reward, done, info = env.step(action)
         intri_reward = intrinsic_reward(state, goal, next_state)
-        done =
+        done = done_judge_low(state, goal)
         next_goal = h_function(state, goal, next_state)
         state = next_state
         experience_buffer_l.add(state, goal, action, next_state, next_goal, intri_reward, done)
@@ -68,7 +79,7 @@ def train(params):
         goal_sequence.append(goal)
         reward_sequence.append(reward)
         done_sequence.append(done)
-        # high-level collecion
+        # high-level collection
         if t % params.policy_params.c == 0 and t > 0:
             if t < params.policy_params.start_timestep:
                 goal = torch.randn_like(action)
