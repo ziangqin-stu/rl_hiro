@@ -1,0 +1,22 @@
+{
+    "root": "/mnt/c/work_space_2/impl_data-effiient-hrl",
+    "program": "/mnt/c/work_space_2/impl_data-effiient-hrl/test/td3.py",
+    "git": {
+        "remote": "https://github.com/ziangqin-stu/impl_data-effiient-hrl.git",
+        "commit": "883c980fc33de221d36d3097f84a88f683ae0573"
+    },
+    "email": null,
+    "startedAt": "2020-06-15T03:01:16.895743",
+    "host": "ziang-ultrabook",
+    "username": "ziang",
+    "executable": "/home/ziang/miniconda3/envs/gail/bin/python",
+    "os": "Linux-4.4.0-17763-Microsoft-x86_64-with-debian-buster-sid",
+    "python": "3.6.10",
+    "cpu_count": 4,
+    "args": [],
+    "state": "running",
+    "jobType": null,
+    "mode": "run",
+    "project": "ziang-hiro",
+    "heartbeatAt": "2020-06-15T03:02:23.235622"
+}

@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/mnt/c/work_space_2/impl_data-effiient-hrl/utils.py", line 20, in __getattr__
+    return self.__getitem__(attr)
+KeyError: 'policy_param'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "td3.py", line 133, in <module>
+    train(params=params)
+  File "td3.py", line 67, in train
+    torch.manual_seed(params.policy_param.seed)
+  File "/mnt/c/work_space_2/impl_data-effiient-hrl/utils.py", line 22, in __getattr__
+    raise AttributeError("Attribute %r not found" % attr)
+AttributeError: Attribute 'policy_param' not found

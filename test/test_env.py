@@ -1,9 +1,9 @@
 """Test Ant Enviornments"""
 import sys
 import os
+from utils import get_env
 
 import torch
-
 sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
 
 import numpy as np
@@ -80,7 +80,12 @@ def interact_envs_display(video=False):
         display.popen.kill()
 
 
+def test_env(env_name):
+    env = get_env(env_name)
+    print(env.spec.id)
+
 if __name__ == "__main__":
     gym.logger.set_level(40)
     # show_envs()
-    interact_envs_display(video=False)
+    # interact_envs_display(video=False)
+    test_env("InvertedPendulum-v2")
