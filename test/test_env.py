@@ -58,6 +58,7 @@ def interact_env(env_name, video=False):
         action = env.action_space.sample()
         obs, reward, done, info = env.step(action)
         step += 1
+        print(f"      > Reward: {reward:.3f}")
     print('    > Finished collection', end='')
     if video:
         frame_buffer = np.array(frame_buffer).transpose(0, 3, 1, 2)
@@ -84,8 +85,10 @@ def test_env(env_name):
     env = get_env(env_name)
     print(env.spec.id)
 
+
 if __name__ == "__main__":
     gym.logger.set_level(40)
     # show_envs()
     # interact_envs_display(video=False)
-    test_env("InvertedPendulum-v2")
+    interact_env('AntBlock', video=False)
+    # test_env("InvertedPendulum-v2")

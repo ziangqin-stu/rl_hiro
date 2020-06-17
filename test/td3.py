@@ -10,8 +10,8 @@ from torch.nn import functional
 import numpy as np
 import wandb
 from utils import get_env, log_video, ParamDict
-from network import Actor, Critic
-from experience_buffer import ExperienceBuffer
+from network import ActorTD3, CriticTD3
+from experience_buffer import ExperienceBufferTD3
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -59,13 +59,13 @@ def step_update(experience_buffer, batch_size, total_it, actor, actor_target, cr
 def train(params):
     # Initialize
     env = get_env(params.env_name)
-    actor = Actor(params.state_dim, params.action_dim, params.policy_params.max_action).to(device)
+    actor = ActorTD3(params.state_dim, params.action_dim, params.policy_params.max_action).to(device)
     actor_target = copy.deepcopy(actor)
     actor_optimizer = torch.optim.Adam(actor.parameters(), lr=params.policy_params.lr)
-    critic = Critic(params.state_dim, params.action_dim).to(device)
+    critic = CriticTD3(params.state_dim, params.action_dim).to(device)
     critic_target = copy.deepcopy(critic)
     critic_optimizer = torch.optim.Adam(critic.parameters(), lr=params.policy_params.lr)
-    experience_buffer = ExperienceBuffer(int(1e6), params.state_dim, params.action_dim)
+    experience_buffer = ExperienceBufferTD3(int(1e6), params.state_dim, params.action_dim)
 
     # Set Seed
     env.seed(params.policy_params.seed)

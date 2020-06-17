@@ -1,4 +1,7 @@
 .idea/
 .runs/
 .save/
+./wandb/
 ./test/wandb/
+./__pycache__/
+./environments/__pycache__/
