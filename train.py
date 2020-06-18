@@ -145,6 +145,8 @@ def train(params):
     goal = torch.randn_like(torch.Tensor(state))
     state_sequence, goal_sequence, action_sequence, next_state_sequence, next_goal_sequence, reward_sequence, done_h_sequence = [], [], [], [], [], [], []
     for t in range(policy_params.max_timestep):
+        if t >= policy_params.start_timestep:
+            print("x")
         episode_timestep += 1
         # > low-level collection
         # >> sample action
@@ -153,7 +155,7 @@ def train(params):
             action = env.action_space.sample()
         else:
             expl_noise = policy_params.expl_noise
-            action = (actor_l(state, goal).detach().cpu()
+            action = (actor_l(torch.Tensor(state).cuda(), torch.Tensor(goal).cuda()).detach().cpu()
                       + np.random.normal(0, max_action * expl_noise, size=params.action_dim).astype(np.float32)).clamp(-max_action, max_action).squeeze()
         # >> perform action
         next_state, reward, done_h, info = env.step(action)
@@ -182,7 +184,7 @@ def train(params):
                 new_goal = torch.randn_like(torch.Tensor(state))
             else:
                 expl_noise = policy_params.expl_noise
-                new_goal = (actor_h(torch.stack(state_sequence), torch.stack(goal_sequence)).detach().cpu()
+                new_goal = (actor_h(torch.stack(state_sequence).cuda(), torch.stack(goal_sequence).cuda()).detach().cpu()
                             + np.random.normal(0, max_goal * expl_noise, size=params.state_dim).astype(np.float32)).clamp(
                     -max_goal, max_goal).squeeze()
                 goal_hat = new_goal
@@ -237,8 +239,8 @@ if __name__ == "__main__":
         policy_freq=1,
         tau=0.005,
         lr=3e-4,
-        max_timestep=int(3e6),
-        start_timestep=int(25e3),
+        max_timestep=int(1e5),
+        start_timestep=int(25e2),
         batch_size=256
     )
     params = ParamDict(
