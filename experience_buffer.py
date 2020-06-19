@@ -27,6 +27,7 @@ class ExperienceBufferTD3:
         self.done = torch.zeros(capacity, 1)
         # choose device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
 
     def reset(self):
         self.__init__(self.capacity)
@@ -73,6 +74,7 @@ class ExperienceBufferLow:
         self.done = torch.zeros(capacity, 1)
         # choose device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
 
     def reset(self):
         self.__init__(self.capacity, self.state_dim, self.action_dim)
@@ -122,6 +124,7 @@ class ExperienceBufferHigh:
         self.done = torch.zeros(capacity, c, 1)
         # choose device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
 
     def reset(self):
         self.__init__(self.capacity, self.state_dim)

@@ -4,6 +4,7 @@ Project utils
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
+import torch
 import wandb
 import numpy as np
 import gym
@@ -28,6 +29,17 @@ class ParamDict(dict):
         self = d
 
 
+class VideoLoggerTrigger:
+    def __init__(self, start_ind=1):
+        self.last_log = int(start_ind)
+
+    def good2log(self, t, interval):
+        if int(t / interval) > int(self.last_log / interval):
+            self.last_log = t
+            return True
+        return False
+
+
 envnames_ant = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']
 envnames_mujoco = ['InvertedPendulum-v2', 'InvertedDoublePendulum-v2', 'Hopper-v2', 'Humanoid-v2', 'Ant-v2',
                    'Reacher-v2', 'HalfCheetah-v2', 'Walker2d-v1']
@@ -45,7 +57,12 @@ def get_env(env_name):
 
 
 def log_video(env_name, actor):
-    env = create_maze_env(env_name=env_name)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu"
+    if env_name in envnames_mujoco:
+        env = gym.make(env_name)
+    elif env_name in envnames_ant:
+        env = create_maze_env(env_name=env_name)
     print('\n    > Collecting current trajectory...')
     done = False
     step = 1
@@ -53,7 +70,7 @@ def log_video(env_name, actor):
     frame_buffer = []
     while not done:
         frame_buffer.append(env.render(mode='rgb_array'))
-        action = actor(state)
+        action = actor(torch.Tensor(state).to(device)).detach().cpu()
         state, reward, done, info = env.step(action)
         step += 1
     print('    > Finished collection, saved video.\n')

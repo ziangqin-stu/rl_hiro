@@ -17,6 +17,7 @@ from network import ActorLow, ActorHigh, CriticLow, CriticHigh
 from experience_buffer import ExperienceBufferLow, ExperienceBufferHigh
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 
 
 def h_function(state, goal, next_state):
@@ -155,7 +156,7 @@ def train(params):
             action = env.action_space.sample()
         else:
             expl_noise = policy_params.expl_noise
-            action = (actor_l(torch.Tensor(state).cuda(), torch.Tensor(goal).cuda()).detach().cpu()
+            action = (actor_l(torch.Tensor(state).to(device), torch.Tensor(goal).to(device)).detach().cpu()
                       + np.random.normal(0, max_action * expl_noise, size=params.action_dim).astype(np.float32)).clamp(-max_action, max_action).squeeze()
         # >> perform action
         next_state, reward, done_h, info = env.step(action)
@@ -184,7 +185,7 @@ def train(params):
                 new_goal = torch.randn_like(torch.Tensor(state))
             else:
                 expl_noise = policy_params.expl_noise
-                new_goal = (actor_h(torch.stack(state_sequence).cuda(), torch.stack(goal_sequence).cuda()).detach().cpu()
+                new_goal = (actor_h(torch.stack(state_sequence).to(device), torch.stack(goal_sequence).to(device)).detach().cpu()
                             + np.random.normal(0, max_goal * expl_noise, size=params.state_dim).astype(np.float32)).clamp(
                     -max_goal, max_goal).squeeze()
                 goal_hat = new_goal
@@ -212,12 +213,12 @@ def train(params):
         if t >= policy_params.start_timestep and t % policy_params.c == 0 and t > 0:
             target_q_h, critic_loss_h, actor_loss_h = \
                 step_update_h(experience_buffer_h, policy_params.batch_size, total_it, actor_h, actor_target_h, critic_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
-            wandb.log({'target_q low': float(target_q_l)}, step=t - params.policy_params.start_timestep)
-            wandb.log({'critic_loss low': float(critic_loss_l)}, step=t - params.policy_params.start_timestep)
-            wandb.log({'actor_loss low': float(actor_loss_l)}, step=t - params.policy_params.start_timestep)
-            wandb.log({'target_q high': float(target_q_h)}, step=t - params.policy_params.start_timestep)
-            wandb.log({'critic_loss high': float(critic_loss_h)}, step=t - params.policy_params.start_timestep)
-            wandb.log({'actor_loss high': float(actor_loss_h)}, step=t - params.policy_params.start_timestep)
+            wandb.log({'target_q low': float(target_q_l)}, step=t-params.policy_params.start_timestep)
+            wandb.log({'critic_loss low': float(critic_loss_l)}, step=t-params.policy_params.start_timestep)
+            wandb.log({'actor_loss low': float(actor_loss_l)}, step=t-params.policy_params.start_timestep)
+            wandb.log({'target_q high': float(target_q_h)}, step=t-params.policy_params.start_timestep)
+            wandb.log({'critic_loss high': float(critic_loss_h)}, step=t-params.policy_params.start_timestep)
+            wandb.log({'actor_loss high': float(actor_loss_h)}, step=t-params.policy_params.start_timestep)
 
 
 if __name__ == "__main__":
@@ -239,8 +240,8 @@ if __name__ == "__main__":
         policy_freq=1,
         tau=0.005,
         lr=3e-4,
-        max_timestep=int(1e5),
-        start_timestep=int(25e2),
+        max_timestep=int(1000),
+        start_timestep=int(300),
         batch_size=256
     )
     params = ParamDict(
