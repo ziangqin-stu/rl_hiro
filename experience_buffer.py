@@ -32,12 +32,12 @@ class ExperienceBufferTD3:
     def reset(self):
         self.__init__(self.capacity)
 
-    def add(self, state, action, next_state, reward, done):
+    def add(self, state, action, reward, next_state, done):
         ind = self.offset
         self.state[ind] = torch.Tensor(state)
         self.action[ind] = torch.Tensor(action)
-        self.next_state[ind] = torch.Tensor(next_state)
         self.reward[ind] = torch.Tensor([reward])[:, None]
+        self.next_state[ind] = torch.Tensor(next_state)
         self.done[ind] = torch.Tensor([done])[:, None]
         self.offset += 1
 

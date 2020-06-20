@@ -1,6 +1,6 @@
 # Off-Policy Understanding: From Q-Learning to HIRO Implementation
 
-HIRO is a variant of HRL witch is more useful than vanilla HRL. It uses all state-of-the-art method to achieve the best result. Understanding and implementing this algorithm from scratch is a little hard to me. I write this document to help clearing my mind. 
+HIRO is a variant of HRL witch is more useful than vanilla HRL. It uses all state-of-the-art techniques to achieve the best result. Understanding and implementing this algorithm from scratch is a little hard to me. <u>I write this document to help clearing my mind</u>. 
 
 HIRO uses TD3 as its RL algorithm. TD3 is a state-of-the-art value-based RL method modified from DDPG. It is applicable to continuous-action tasks, using double DQN, actor-critic, delayed policy update techniques. Implementing TD3 when I only understand Q-learning / DQN settings is hard. Here I try to write down the critical knowledge from Q-learning to TD3, then use them to help me to transform pseudo-code to torch code.
 
@@ -17,6 +17,7 @@ Future contents:
 
 * overestimation
   * what is overestimate
+  * bias and variance in overestimate
   * why it happens
   * methods of solving
 * double Q-Learning
@@ -26,6 +27,9 @@ Future contents:
 * sarsa
 * dueling DQN
 * AC/SAC
+* TD3
+  * why fill experience memory with random trajectory?
+  * why Target Policy Smoothing Regularization works?
 * DPG/DDPG
   * why applying DPG is hard? why not direct generate action but generate distribution?
   * what $\pi$ and $\mu$ DPG uses to generate action and critic value?
@@ -41,6 +45,7 @@ Other References:
 * [Deep Reinforcement Learning -1. DDPG原理和算法](https://blog.csdn.net/kenneth_yu/article/details/78478356)
 * [深度强化学习之DQN系算法(二) DDPG与TD3算法学习笔记](https://zhuanlan.zhihu.com/p/128477488)
 * [深度强化学习系列(16): 从DPG到DDPG算法的原理讲解及tensorflow代码实现](https://blog.csdn.net/gsww404/article/details/80403150)
+* [论文阅读-TD3](https://zhuanlan.zhihu.com/p/55307499)
 
 ## Q-Learning Settings
 
@@ -52,7 +57,7 @@ The goal is to find a policy that maximizes the long-horizon discounted reward o
 
 During execution, Q-learning choose the actions that give the maximum expected long-horizon discounted reward at each step. The algorithm evaluate each action at specific sates by a Q function, the training process is basically update these Q functions to their optimal value.
 
-* Goal: $\text{maximize}_{\pi}E[\sum_{t=0}^H \gamma^tR(S_t, A_t, S_{t+1} | \pi)]$
+* Goal: $\text{maximize} \, E[\sum_{t=0}^H \gamma^tR(S_t, A_t, S_{t+1} | \pi)]$
 * $V_{\pi}(s) = E_{\pi}[U_t | S_t = t] = E[R_{t+1} + \gamma V(s') | S_t = s]$
 * $Q(s, a) = E_{\pi}[r_{t+1}, \gamma r_{t+2}, \gamma^2 r_{t+3}, \ldots | A_t = a, S_t = s] = E_{\pi}[G_t | A_t = a, S_t = s]$
 * $Q_{\pi}(s, a) = R_s^a + \gamma \sum_{s' \in S} P_{ss'}^a V_{\pi}(s')$
@@ -125,7 +130,7 @@ See this: [[What is "experience replay" and what are its benefits?](https://data
 
 ### Algorithm
 
-<img src="https://morvanzhou.github.io/static/results/reinforcement-learning/4-1-1.jpg" alt="dqn_algorithm" style="zoom:105%;" />
+<img src="https://morvanzhou.github.io/static/results/reinforcement-learning/4-1-1.jpg" alt="dqn_algorithm" style="zoom:110%;" />
 
 ## Double DQN 
 
@@ -156,7 +161,7 @@ By setting max Q value to be zero, we can read how Q value overestimate problem 
 
  ## Actor-Critic Method: Toward continuous tasks
 
-## DDPG: Mile stone value-based RL method of solving continuous tasks
+## DDPG: Value-based RL method solving continuous tasks
 
 ### DDPG Settings
 
@@ -182,7 +187,7 @@ To have a quick know ledge for future development, keep in mind:
 
 #### Algorithm
 
-<img src="https://img-blog.csdn.net/20180522173551120?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2dzd3c0MDQ=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="ddpg_algorithm" style="zoom:75%;" />
+<img src="https://img-blog.csdn.net/20180522173551120?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2dzd3c0MDQ=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70" alt="ddpg_algorithm" style="zoom:80%;" />
 
 ## TD3: A more complex DDPG using clipped double Q-learning & delayed policy update
 
@@ -193,12 +198,17 @@ TD3 represents twin delayed deep deterministic policy gradient, which applies
 * clipped double Q-Learning
 * target policy smoothing regularization 
 * delayed policy update 
+* noise: use normal distribution to replace OU distribution in DDPG
 
 over DDPG. The main purpose is to leverage overestimate / unstable Q value problem exists in DDPG. 
 
-## HRL: Mile stone RL method of solving long-horizon tasks
+#### Algorithm
 
-## HIRO: More efficient variant of HRL using off-policy algorithm
+<img src="https://pic4.zhimg.com/80/v2-ebfe3a1163a91140047a514d750d39d3_720w.jpg" alt="img" style="zoom:75%;" />
+
+## HRL: RL method for solving long-horizon tasks
+
+## HIRO: Variant of HRL using off-policy algorithm
 
 ### Novelty
 
