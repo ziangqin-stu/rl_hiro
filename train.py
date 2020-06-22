@@ -71,7 +71,7 @@ def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     critic_optimizer.step()
     # delayed policy update
     actor_loss = None
-    if (total_it[0] / policy_params.c) % policy_params.policy_freq == 0:
+    if total_it[0] % policy_params.policy_freq == 0:
         # compute actor loss
         actor_loss = -critic_eval.q1(state, goal, actor_eval(state, goal)).mean()
         actor_optimizer.zero_grad()
@@ -82,7 +82,8 @@ def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_tar
             target_param.data.copy_(policy_params.tau * param.data + (1 - policy_params.tau) * target_param.data)
         for param, target_param in zip(actor_eval.parameters(), actor_target.parameters()):
             target_param.data.copy_(policy_params.tau * param.data + (1 - policy_params.tau) * target_param.data)
-    return y, critic_loss, actor_loss
+        actor_loss = actor_loss.detach()
+    return y.detach(), critic_loss.detach(), actor_loss
 
 
 def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_target, critic_eval, critic_target, critic_optimizer, actor_optimizer, params):
@@ -106,7 +107,7 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     critic_optimizer.step()
     # delayed policy updates
     actor_loss = None
-    if (total_it[0] / policy_params.c) % policy_params.policy_freq == 0:
+    if int(total_it[0] / policy_params.c) % policy_params.policy_freq == 0:
         # compute actor loss
         actor_loss = -critic_eval.q1(state_start, actor_eval(state_start)).mean()
         actor_optimizer.zero_grad()
@@ -117,7 +118,8 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
             target_param.data.copy_(policy_params.tau * param.data + (1 - policy_params.tau) * target_param.data)
         for param, target_param in zip(actor_eval.parameters(), actor_target.parameters()):
             target_param.data.copy_(policy_params.tau * param.data + (1 - policy_params.tau) * target_param.data)
-    return y, critic_loss, actor_loss
+        actor_loss = actor_loss.detach()
+    return y.detach(), critic_loss.detach(), actor_loss
 
 
 def train(params):
@@ -221,11 +223,11 @@ def train(params):
             if actor_loss_h is not None: wandb.log({'actor_loss high': torch.mean(actor_loss_h).squeeze()}, step=t-params.policy_params.start_timestep)
         # >> start new episode if done
         if bool(done_l) or episode_timestep_l >= policy_params.c:
-            print(f"    > Total T: {t + 1} Episode_Low Num: {episode_num_l + 1} Episode_Low T: {episode_timestep_l} Reward_Low: {float(episode_reward_l):.3f}")
+            print(f"    > Total T: {t + 1} Episode_Low Num: {episode_num_l + 1} Episode_Low T: {episode_timestep_l} Reward_Low: {float(episode_reward_l):.3f} Reward_High: {float(episode_reward_h):.3f}")
             if t >= policy_params.start_timestep:
                 wandb.log({'episode reward low': episode_reward_l}, step=t-params.policy_params.start_timestep)
                 wandb.log({'episode reward high': episode_reward_h}, step=t-params.policy_params.start_timestep)
-            if params.save_video and (t % params.video_interval) == 0:  log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
+            if params.save_video and video_log_trigger.good2log(t, params.video_interval):  log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
             state, done_h = torch.Tensor(env.reset()), False
             episode_reward_l, episode_reward_h, episode_timestep_l = 0, 0, 0
             episode_num_l += 1
@@ -237,7 +239,7 @@ def train(params):
 
 if __name__ == "__main__":
     gym.logger.set_level(40)
-    env_name = "AntMaze"
+    env_name = "AntPush"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
@@ -260,8 +262,8 @@ if __name__ == "__main__":
         reward_scal_l=1.,
         reward_scal_h=.1,
         sigma_g=1.,
-        max_timestep=int(1e6),
-        start_timestep=int(300),
+        max_timestep=int(1e7),
+        start_timestep=int(3e4),
         batch_size=256
     )
     params = ParamDict(
@@ -270,8 +272,8 @@ if __name__ == "__main__":
         state_dim=state_dim,
         action_dim=action_dim,
         save_video=True,
-        video_interval=int(1e4),
-        log_interval=10
+        video_interval=int(5e3),
+        log_interval=1
     )
     wandb.init(project="ziang-hiro")
     train(params=params)
