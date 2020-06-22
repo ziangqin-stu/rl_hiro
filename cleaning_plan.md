@@ -24,12 +24,13 @@
   - [ ] check max action(clip)(one of hyper-parameters)
   - [ ] replay buffer size (2e5)
   - [ ] **done of high-level**
+  - [ ] **action / goal range**
 - [ ] follow a run
 - [ ] run experiment to get good results
 - [ ] check imp details with paper / code
   * networks
   * hyper-parameters
-  * log_video function
+  * **log_video function**
 - [ ] move to cuda
 - [ ] upgrade code efficiency
   * redundant data transformation

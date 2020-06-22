@@ -8,12 +8,12 @@ sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
 
 import numpy as np
 import wandb
+from utils import envnames_ant, log_video_hrl, ParamDict
+from network import ActorLow, ActorHigh
 wandb.init(project="ziang-hiro")
 import gym
 from pyvirtualdisplay import Display
 from environments.create_maze_env import create_maze_env
-
-env_names = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']
 
 
 def show_env_property(env_name):
@@ -40,8 +40,7 @@ def show_env_property(env_name):
 
 
 def show_envs():
-    global env_names
-    for env_name in env_names:
+    for env_name in envnames_ant:
         show_env_property(env_name)
 
 
@@ -71,11 +70,10 @@ def interact_env(env_name, video=False):
 
 
 def interact_envs_display(video=False):
-    global env_names
     if video:
         display = Display(backend='xvfb')
         display.start()
-    for env_name in env_names:
+    for env_name in envnames_ant:
         interact_env(env_name, video=video)
     if video:
         display.popen.kill()
@@ -86,9 +84,29 @@ def test_env(env_name):
     print(env.spec.id)
 
 
+def test_log_video_hrl(use_cuda=False):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if use_cuda else "cpu"
+    policy_params = ParamDict(
+        c=10,
+    )
+    params = ParamDict(
+        policy_params=policy_params,
+        use_cuda=False
+    )
+    for env_name in envnames_ant:
+        env = create_maze_env(env_name=env_name)
+        state_dim = env.observation_space.shape[0]
+        action_dim = env.action_space.shape[0]
+        max_action = float(env.action_space.high[0])
+        actor_low = ActorLow(state_dim, action_dim, max_action).to(device)
+        actor_high = ActorHigh(state_dim, max_action).to(device)
+        log_video_hrl(env_name, actor_low, actor_high, params)
+
+
 if __name__ == "__main__":
     gym.logger.set_level(40)
     # show_envs()
     # interact_envs_display(video=True)
-    interact_env('AntMaze', video=False)
+    # interact_env('AntMaze', video=False)
     # test_env("InvertedPendulum-v2")
+    test_log_video_hrl()

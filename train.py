@@ -38,10 +38,13 @@ def off_policy_correction(actor, action_sequence, state_sequence, goal, params):
     action_sequence = torch.stack(action_sequence)
     state_sequence = torch.stack(state_sequence)
     # prepare candidates
-    candidates= [np.random.normal(loc=state_sequence[-1] - state_sequence[0], scale=policy_params.sigma_g, size=params.action_dim) for i in range(8)]
+    mean = state_sequence[-1] - state_sequence[0]
+    std = 0.5 * policy_params.max_goal
+    candidates = [np.random.normal(loc=mean, scale=std, size=params.state_dim).clip(-policy_params.max_goal, policy_params.max_goal).astype(np.float32) for i in range(8)]
     candidates.append(state_sequence[-1] - state_sequence[0])
     candidates.append(goal)
-    probability = [functional.mse_loss(action_sequence, actor(state_sequence, state_sequence[0] + candidate - state_sequence)) for candidate in candidates]
+    # select maximal
+    probability = [-functional.mse_loss(action_sequence, actor(state_sequence, state_sequence[0] + candidate - state_sequence)) for candidate in candidates]
     goal_hat = candidates[np.argmax(probability)]
     return torch.Tensor(goal_hat)
 
@@ -134,12 +137,12 @@ def train(params):
     critic_optimizer_h = torch.optim.Adam(critic_eval_h.parameters(), lr=policy_params.critic_lr)
     experience_buffer_h = ExperienceBufferHigh(policy_params.max_timestep, params.state_dim, params.use_cuda)
 
-    actor_l = ActorLow(params.state_dim, params.action_dim, policy_params.max_action).to(device)
-    actor_target_l = copy.deepcopy(actor_l)
-    actor_optimizer_l = torch.optim.Adam(actor_l.parameters(), lr=policy_params.actor_lr)
-    critic_l = CriticLow(params.state_dim, params.action_dim).to(device)
-    critic_target_l = copy.deepcopy(critic_l)
-    critic_optimizer_l = torch.optim.Adam(critic_l.parameters(), lr=policy_params.critic_lr)
+    actor_eval_l = ActorLow(params.state_dim, params.action_dim, policy_params.max_action).to(device)
+    actor_target_l = copy.deepcopy(actor_eval_l)
+    actor_optimizer_l = torch.optim.Adam(actor_eval_l.parameters(), lr=policy_params.actor_lr)
+    critic_eval_l = CriticLow(params.state_dim, params.action_dim).to(device)
+    critic_target_l = copy.deepcopy(critic_eval_l)
+    critic_optimizer_l = torch.optim.Adam(critic_eval_l.parameters(), lr=policy_params.critic_lr)
     experience_buffer_l = ExperienceBufferLow(policy_params.max_timestep, params.state_dim, params.action_dim, params.use_cuda)
 
     # Set Seed
@@ -163,7 +166,7 @@ def train(params):
             action = env.action_space.sample()
         else:
             expl_noise_action = np.random.normal(loc=0, scale=max_action*policy_params.expl_noise, size=params.action_dim).astype(np.float32)
-            action = (actor_l(state.to(device), goal.to(device)).detach().cpu() + expl_noise_action).clamp(-max_action, max_action).squeeze()
+            action = (actor_eval_l(state.to(device), goal.to(device)).detach().cpu() + expl_noise_action).clamp(-max_action, max_action).squeeze()
         # >> perform action
         next_state, reward, done_h, info = env.step(action)
         intri_reward = intrinsic_reward(state, goal, next_state)
@@ -195,8 +198,8 @@ def train(params):
             else:
                 expl_noise_goal = np.random.normal(loc=0, scale=max_goal*policy_params.expl_noise, size=params.state_dim).astype(np.float32)
                 new_goal = (actor_eval_h(state_sequence[0].to(device)).detach().cpu() + expl_noise_goal).clamp(-max_goal, max_goal).squeeze()
-            # goal_hat = off_policy_correction(actor_target_l, action_sequence, state_sequence, goal_sequence[0], params)
-            goal_hat = goal_sequence[0]
+            goal_hat = off_policy_correction(actor_target_l, action_sequence, state_sequence, goal_sequence[0], params)
+            # goal_hat = goal_sequence[0]
             # >> collect step-high
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state, done_h)
             goal = new_goal
@@ -205,8 +208,8 @@ def train(params):
         # > update networks
         # >> low-level update
         if t >= policy_params.start_timestep:
-            target_q_l, critic_loss_l, actor_loss_l = step_update_l(experience_buffer_l, policy_params.batch_size, total_it, actor_l, actor_target_l,
-                          critic_l, critic_target_l, critic_optimizer_l, actor_optimizer_l, params)
+            target_q_l, critic_loss_l, actor_loss_l = step_update_l(experience_buffer_l, policy_params.batch_size, total_it, actor_eval_l, actor_target_l,
+                          critic_eval_l, critic_target_l, critic_optimizer_l, actor_optimizer_l, params)
         # >> high-level update
         if t >= policy_params.start_timestep and t % policy_params.c == 0 and t > 0:
             target_q_h, critic_loss_h, actor_loss_h = \
@@ -261,7 +264,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         sigma_g=1.,
         max_timestep=int(1e7),
-        start_timestep=int(3e4),
+        start_timestep=int(3e2),
         batch_size=100
     )
     params = ParamDict(
@@ -272,7 +275,7 @@ if __name__ == "__main__":
         video_interval=int(1e3),
         log_interval=1,
         save_video=True,
-        use_cuda=True
+        use_cuda=False
     )
     wandb.init(project="ziang-hiro")
     train(params=params)
