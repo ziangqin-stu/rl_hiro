@@ -16,9 +16,6 @@ from utils import get_env, log_video_hrl, ParamDict, VideoLoggerTrigger
 from network import ActorLow, ActorHigh, CriticLow, CriticHigh
 from experience_buffer import ExperienceBufferLow, ExperienceBufferHigh
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
-
 
 def h_function(state, goal, next_state):
     return state + goal - next_state
@@ -31,7 +28,7 @@ def intrinsic_reward(state, goal, next_state):
 
 def done_judge_low(state, goal, next_state):
     # return torch.Tensor(state).equal(torch.Tensor(goal))
-    done = torch.abs(intrinsic_reward(state, goal, next_state)) < 1000.
+    done = torch.abs(intrinsic_reward(state, goal, next_state)) < 1.
     return torch.Tensor([done])
 
 
@@ -124,6 +121,7 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
 
 def train(params):
     # Initialization
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
     policy_params = params.policy_params
     env = get_env(params.env_name)
     video_log_trigger = VideoLoggerTrigger(start_ind=policy_params.start_timestep)
@@ -134,7 +132,7 @@ def train(params):
     critic_eval_h = CriticHigh(params.state_dim).to(device)
     critic_target_h = copy.deepcopy(critic_eval_h)
     critic_optimizer_h = torch.optim.Adam(critic_eval_h.parameters(), lr=policy_params.critic_lr)
-    experience_buffer_h = ExperienceBufferHigh(policy_params.max_timestep, params.state_dim)
+    experience_buffer_h = ExperienceBufferHigh(policy_params.max_timestep, params.state_dim, params.use_cuda)
 
     actor_l = ActorLow(params.state_dim, params.action_dim, policy_params.max_action).to(device)
     actor_target_l = copy.deepcopy(actor_l)
@@ -142,7 +140,7 @@ def train(params):
     critic_l = CriticLow(params.state_dim, params.action_dim).to(device)
     critic_target_l = copy.deepcopy(critic_l)
     critic_optimizer_l = torch.optim.Adam(critic_l.parameters(), lr=policy_params.critic_lr)
-    experience_buffer_l = ExperienceBufferLow(policy_params.max_timestep, params.state_dim, params.action_dim)
+    experience_buffer_l = ExperienceBufferLow(policy_params.max_timestep, params.state_dim, params.action_dim, params.use_cuda)
 
     # Set Seed
     env.seed(policy_params.seed)
@@ -228,18 +226,18 @@ def train(params):
                 wandb.log({'episode reward low': episode_reward_l}, step=t-params.policy_params.start_timestep)
                 wandb.log({'episode reward high': episode_reward_h}, step=t-params.policy_params.start_timestep)
             if params.save_video and video_log_trigger.good2log(t, params.video_interval):  log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
-            state, done_h = torch.Tensor(env.reset()), False
             episode_reward_l, episode_reward_h, episode_timestep_l = 0, 0, 0
             episode_num_l += 1
         if bool(done_h):
             episode_num_h += 1
             print(f"    >>> Total T: {t + 1} Episode_High Num: {episode_num_h + 1} Episode_High T: {episode_timestep_h} Reward_High: {float(episode_reward_h):.3f}")
+            state, done_h = torch.Tensor(env.reset()), False
             episode_timestep_h = 0
 
 
 if __name__ == "__main__":
     gym.logger.set_level(40)
-    env_name = "AntPush"
+    env_name = "AntMaze"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
@@ -264,16 +262,17 @@ if __name__ == "__main__":
         sigma_g=1.,
         max_timestep=int(1e7),
         start_timestep=int(3e4),
-        batch_size=256
+        batch_size=100
     )
     params = ParamDict(
         policy_params=policy_params,
         env_name=env_name,
         state_dim=state_dim,
         action_dim=action_dim,
+        video_interval=int(1e3),
+        log_interval=1,
         save_video=True,
-        video_interval=int(5e3),
-        log_interval=1
+        use_cuda=True
     )
     wandb.init(project="ziang-hiro")
     train(params=params)

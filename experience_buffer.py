@@ -13,7 +13,7 @@ class ExperienceBufferTD3:
         - assume state, action is not one-dimension
         - hold cpu data in memory, transform when output
     """
-    def __init__(self, capacity, state_dim, action_dim):
+    def __init__(self, capacity, state_dim, action_dim, use_cuda):
         # initialize
         self.capacity = capacity
         self.offset = 0
@@ -26,8 +26,8 @@ class ExperienceBufferTD3:
         self.reward = torch.zeros(capacity, 1)
         self.done = torch.zeros(capacity, 1)
         # choose device
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if use_cuda else "cpu"
+        # self.device = "cpu"
 
     def reset(self):
         self.__init__(self.capacity)
@@ -58,7 +58,7 @@ class ExperienceBufferLow:
         - assume state, action is not one-dimension
         - hold cpu data in memory, transform when output
     """
-    def __init__(self, capacity, state_dim, action_dim):
+    def __init__(self, capacity, state_dim, action_dim, use_cuda):
         # initialize
         self.capacity = capacity
         self.state_dim = state_dim
@@ -73,8 +73,8 @@ class ExperienceBufferLow:
         self.next_goal = torch.zeros(capacity, state_dim)
         self.done = torch.zeros(capacity, 1)
         # probe device
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if use_cuda else "cpu"
+        # self.device = "cpu"
 
     def add(self, state, goal, action, reward, next_state, next_goal, done):
         # add step experience (off-policy single steps)
@@ -106,7 +106,7 @@ class ExperienceBufferHigh:
     DevNotes:
         - hold cpu data in memory, transform when output
     """
-    def __init__(self, capacity, state_dim):
+    def __init__(self, capacity, state_dim, use_cuda):
         # initialize
         self.capacity = capacity
         self.state_dim = state_dim
@@ -118,8 +118,8 @@ class ExperienceBufferHigh:
         self.state_end = torch.zeros(capacity, state_dim)
         self.done = torch.zeros(capacity, 1)
         # probe device
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if use_cuda else "cpu"
+        # self.device = "cpu"
 
     def add(self, state_start, goal_start, reward, state_end, done):
         # add step experience (off-policy single steps)
