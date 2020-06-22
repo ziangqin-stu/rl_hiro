@@ -38,7 +38,9 @@ class MazeEnv(gym.Env):
         model_cls = self.__class__.MODEL_CLASS
         if model_cls is None:
             raise Exception("MODEL_CLASS unspecified!")
+        proj_name = "impl_data-effiient-hrl"
         proj_path = os.getcwd()
+        proj_path =  os.path.join(proj_path.split("/"+proj_name)[0], proj_name)
         # proj_path = '/mnt/c/work_space_2/impl_data-effiient-hrl'
         xml_path = os.path.join(proj_path, MODEL_DIR, model_cls.FILE)
         tree = ET.parse(xml_path)

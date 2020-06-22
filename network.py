@@ -61,6 +61,7 @@ class ActorLow(nn.Module):
     def __init__(self, state_dim, action_dim, max_action):
         super(ActorLow, self).__init__()
         self.fc = nn.Sequential(
+            # (state, goal) -> action
             nn.Linear(state_dim * 2, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
@@ -71,9 +72,12 @@ class ActorLow(nn.Module):
         self.max_action = max_action
 
     def forward(self, state, goal):
+        # force to reformat input data
         state, goal = torch.Tensor(state), torch.Tensor(goal)
-        if len(state.shape) < 2: state = state[None, :]  # reformat as batch data
+        # reformat input as batch data
+        if len(state.shape) < 2: state = state[None, :]
         if len(goal.shape) < 2: goal = goal[None, :]
+        # forward propagate
         obs = torch.cat([state, goal], 1)
         logits = self.fc(obs)
         action = logits * self.max_action
@@ -83,7 +87,9 @@ class ActorLow(nn.Module):
 class CriticLow(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(CriticLow, self).__init__()
+        # double Q networks
         self.fc1 = nn.Sequential(
+            # (state, goal, action) -> q_l1
             nn.Linear(state_dim * 2 + action_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
@@ -91,6 +97,7 @@ class CriticLow(nn.Module):
             nn.Linear(300, 1),
         )
         self.fc2 = nn.Sequential(
+            # (state, goal, action) -> q_l2
             nn.Linear(state_dim * 2 + action_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
@@ -99,72 +106,94 @@ class CriticLow(nn.Module):
         )
 
     def forward(self, state, goal, action):
+        # force to reformat input data
         state, goal, action = torch.Tensor(state), torch.Tensor(goal), torch.Tensor(action)
+        # reformat input as batch data
+        if len(state.shape) < 2: state = state[None, :]
+        if len(goal.shape) < 2: goal = goal[None, :]
+        if len(action.shape) < 2: action = action[None, :]
+        # forward propagate
         obs_action = torch.cat([state, goal, action], 1)
         q1 = self.fc1(obs_action)
         q2 = self.fc2(obs_action)
         return q1, q2
 
     def q1(self, state, goal, action):
+        # force to reformat input data
         state, goal, action = torch.Tensor(state), torch.Tensor(goal), torch.Tensor(action)
+        # reformat input as batch data
+        if len(state.shape) < 2: state = state[None, :]
+        if len(goal.shape) < 2: goal = goal[None, :]
+        if len(action.shape) < 2: action = action[None, :]
         obs_action = torch.cat([state, goal, action], 1)
+        # forward propagate
         q1 = self.fc1(obs_action)
         return q1
 
 
 class ActorHigh(nn.Module):
-    def __init__(self, c, state_dim, max_goal):
+    def __init__(self, state_dim, max_goal):
         super(ActorHigh, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(c * state_dim * 2, 300),
+            # (state, goal) -> goal'
+            nn.Linear(state_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
             nn.Linear(300, state_dim),
-            # nn.Tanh()
+            nn.Tanh()
         )
         self.max_goal = max_goal
 
-    def forward(self, state, goal):
-        state, goal = torch.Tensor(state), torch.Tensor(goal)
-        if len(state.shape) < 3: state = state[None, :]  # reformat as batch data
-        if len(goal.shape) < 3: goal = goal[None, :]
-        obs = torch.cat([state, goal], 2)
-        if len(obs.shape) < 3: obs = obs[None, :]
-        obs = obs.flatten(start_dim=1)
-        logits = self.fc(obs)
+    def forward(self, state):
+        # force to reformat input data
+        state = torch.Tensor(state)
+        # reformat input as batch data
+        if len(state.shape) < 2: state = state[None, :]
+        # forward propagate
+        logits = self.fc(state)
         next_goal = logits * self.max_goal
         return next_goal
 
 
 class CriticHigh(nn.Module):
-    def __init__(self, c, state_dim):
+    def __init__(self, state_dim):
         super(CriticHigh, self).__init__()
         self.fc1 = nn.Sequential(
-            nn.Linear(c * state_dim * 2 + state_dim, 300),
+            # (state, goal') -> q_h1
+            nn.Linear(state_dim * 2, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
             nn.Linear(300, 1),
         )
         self.fc2 = nn.Sequential(
-            nn.Linear(c * state_dim * 2 + state_dim, 300),
+            # (state, goal, goal') -> q_h2
+            nn.Linear(state_dim * 2, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
             nn.Linear(300, 1),
         )
 
-    def forward(self, state, goal, next_goal):
-        state, goal, next_goal = torch.Tensor(state), torch.Tensor(goal), torch.Tensor(next_goal)
-        obs_action = torch.cat([torch.cat([state, goal], 2).flatten(start_dim=1), next_goal], 1)
+    def forward(self, state, next_goal):
+        # force to reformat input data
+        state = torch.Tensor(state)
+        # reformat input as batch data
+        if len(state.shape) < 2: state = state[None, :]
+        obs_action = torch.cat([state, next_goal], 1)
+        # forward propagate
         q1 = self.fc1(obs_action)
         q2 = self.fc2(obs_action)
         return q1, q2
 
-    def q1(self, state, goal, next_goal):
-        state, goal, next_goal = torch.Tensor(state), torch.Tensor(goal), torch.Tensor(next_goal)
-        obs_action = torch.cat([torch.cat([state, goal], 2).flatten(start_dim=1), next_goal], 1)
+    def q1(self, state, next_goal):
+        # force to reformat input data
+        state = torch.Tensor(state)
+        # reformat input as batch data
+        if len(state.shape) < 2: state = state[None, :]
+        obs_action = torch.cat([state, next_goal], 1)
+        # forward propagate
         q1 = self.fc1(obs_action)
         return q1
 

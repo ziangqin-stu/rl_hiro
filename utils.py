@@ -85,14 +85,40 @@ def log_video(env_name, actor):
     env.close()
 
 
+def log_video_hrl(env_name, actor_low, actor_high, params):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cpu"
+    policy_params = params.policy_params
+    if env_name in envnames_mujoco:
+        env = gym.make(env_name)
+    elif env_name in envnames_ant:
+        env = create_maze_env(env_name=env_name)
+    print('\n    > Collecting current trajectory...')
+    done = False
+    step = 1
+    state = torch.Tensor(env.reset())
+    goal = torch.Tensor(torch.randn_like(state))
+    frame_buffer = []
+    while not done and step < 1000:
+        frame_buffer.append(env.render(mode='rgb_array'))
+        action = actor_low(torch.Tensor(state).to(device), torch.Tensor(goal).to(device)).detach().cpu()
+        if (step + 1) % policy_params.c == 0 and step > 0: goal = actor_high(state)
+        state, reward, done, info = env.step(action)
+        step += 1
+    print('    > Finished collection, saved video.\n')
+    frame_buffer = np.array(frame_buffer).transpose(0, 3, 1, 2)
+    wandb.log({"video": wandb.Video(frame_buffer, fps=30, format="mp4")})
+    env.close()
+
+
 def print_cmd_hint(params, location):
     policy_params = params.policy_params
     if location == "start_train":
-        print("\n\n=====================================================\nStart Train - {}".format(params.env_name))
-        print("=====================================================")
+        print("\n\n==========================================================\nStart Train: {}".format(params.env_name))
+        print("==========================================================")
     elif location == "end_train":
-        print("\n=====================================================\nFinished Training! - {}".format(params.env_name))
-        print("=====================================================\n\n")
+        print("\n==========================================================\nFinished Training! - {}".format(params.env_name))
+        print("==========================================================\n\n")
 
 
 

@@ -89,6 +89,6 @@ def test_env(env_name):
 if __name__ == "__main__":
     gym.logger.set_level(40)
     # show_envs()
-    # interact_envs_display(video=False)
-    interact_env('AntBlock', video=False)
+    # interact_envs_display(video=True)
+    interact_env('AntMaze', video=False)
     # test_env("InvertedPendulum-v2")

@@ -32,21 +32,21 @@ def step_update(experience_buffer, batch_size, total_it, actor_eval, actor_targe
     state, action, next_state, reward, done = experience_buffer.sample(batch_size)
     with torch.no_grad():
         # select action according to policy and add clipped noise
-        noise = (torch.randn_like(action) * policy_params.policy_noise).clamp(-policy_params.noise_clip, policy_params.noise_clip)
+        noise = (torch.normal(size=action.size(), mean=0., std=policy_params.normal_std) * policy_params.policy_noise).clamp(-policy_params.noise_clip, policy_params.noise_clip)
         next_action = (actor_target(next_state) + noise).clamp(-policy_params.max_action, policy_params.max_action)
         # clipped double Q-learning
         q_target_1, q_target_2 = critic_target(next_state, next_action)
         q_target = torch.min(q_target_1, q_target_2)
-        q_target = reward + (1 - done) * policy_params.discount * q_target
+        y = reward + (1 - done) * policy_params.discount * q_target
     # update critic q_evaluate
     q_eval_1, q_eval_2 = critic_eval(state, action)
-    critic_loss = functional.mse_loss(q_eval_1, q_target) + functional.mse_loss(q_eval_2, q_target)
+    critic_loss = functional.mse_loss(q_eval_1, y) + functional.mse_loss(q_eval_2, y)
     critic_optimizer.zero_grad()
     critic_loss.backward()
     critic_optimizer.step()
     # delayed policy update
     actor_loss = None
-    if total_it[0] % params.policy_params.policy_freq == 0:
+    if total_it[0] % policy_params.policy_freq == 0:
         # gradient ascent for actor policy DPG objective function J
         actor_loss = -critic_eval.q1(state, actor_eval(state)).mean()
         actor_optimizer.zero_grad()
@@ -57,14 +57,14 @@ def step_update(experience_buffer, batch_size, total_it, actor_eval, actor_targe
             param_target.data.copy_(policy_params.tau * param_eval.data + (1 - policy_params.tau) * param_target.data)
         for param_eval, param_target in zip(actor_eval.parameters(), actor_target.parameters()):
             param_target.data.copy_(policy_params.tau * param_eval.data + (1 - policy_params.tau) * param_target.data)
-    return q_target, critic_loss, actor_loss
+    return y, critic_loss, actor_loss
 
 
 def train(params):
     # Initialize
     policy_params = params.policy_params
-    video_log_trigger = VideoLoggerTrigger(start_ind=policy_params.start_timestep)
     env = get_env(params.env_name)
+    video_log_trigger = VideoLoggerTrigger(start_ind=policy_params.start_timestep)
     experience_buffer = ExperienceBufferTD3(policy_params.max_timestep, params.state_dim, params.action_dim)
     actor_eval = ActorTD3(params.state_dim, params.action_dim, policy_params.max_action).to(device)
     actor_target = copy.deepcopy(actor_eval)
@@ -128,8 +128,7 @@ def train(params):
 Quick Test
 """
 if __name__ == "__main__":
-
-    env_name = "Ant-v2"
+    env_name = "InvertedPendulum-v2"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
@@ -145,7 +144,7 @@ if __name__ == "__main__":
         policy_freq=2,
         tau=5e-3,
         lr=3e-4,
-        max_timestep=int(1e6),
+        max_timestep=int(5e4),
         start_timestep=int(25e3),
         batch_size=100
     )
