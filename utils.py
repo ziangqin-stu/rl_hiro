@@ -3,6 +3,9 @@ Project utils
 """
 import sys
 import os
+
+import copy
+
 sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
 import torch
 import wandb
@@ -86,8 +89,8 @@ def log_video(env_name, actor):
 
 
 def log_video_hrl(env_name, actor_low, actor_high, params):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
-    # device = "cpu"
+    actor_low = copy.deepcopy(actor_low).cpu()
+    actor_high = copy.deepcopy(actor_high).cpu()
     policy_params = params.policy_params
     if env_name in envnames_mujoco:
         env = gym.make(env_name)
@@ -101,7 +104,7 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
     episode_reward, frame_buffer = 0, []
     while not done and step < 1000:
         frame_buffer.append(env.render(mode='rgb_array'))
-        action = actor_low(torch.Tensor(state).to(device), torch.Tensor(goal).to(device)).detach().cpu()
+        action = actor_low(torch.Tensor(state), torch.Tensor(goal)).detach()
         if (step + 1) % policy_params.c == 0 and step > 0:
             goal = actor_high(state)
         state, reward, done, info = env.step(action)

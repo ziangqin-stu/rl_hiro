@@ -79,13 +79,13 @@ class ExperienceBufferLow:
     def add(self, state, goal, action, reward, next_state, next_goal, done):
         # add step experience (off-policy single steps)
         ind = self.offset
-        self.state[ind] = torch.Tensor(state)
-        self.goal[ind] = torch.Tensor(goal)
-        self.action[ind] = torch.Tensor(action)
-        self.reward[ind] = torch.Tensor(reward)
-        self.next_state[ind] = torch.Tensor(next_state)
-        self.next_goal[ind] = torch.Tensor(next_goal)
-        self.done[ind] = torch.Tensor(done)
+        self.state[ind] = state.cpu()
+        self.goal[ind] = goal.cpu()
+        self.action[ind] = action.cpu()
+        self.reward[ind] = reward.cpu()
+        self.next_state[ind] = next_state.cpu()
+        self.next_goal[ind] = next_goal.cpu()
+        self.done[ind] = done.cpu()
         self.offset += 1
 
     def sample(self, batch_size):
@@ -124,11 +124,11 @@ class ExperienceBufferHigh:
     def add(self, state_start, goal_start, reward, state_end, done):
         # add step experience (off-policy single steps)
         ind = self.offset
-        self.state_start[ind] = torch.Tensor(state_start)
-        self.goal_start[ind] = torch.Tensor(goal_start)
-        self.reward[ind] = torch.Tensor(reward)
-        self.state_end[ind] = torch.Tensor(state_end)
-        self.done[ind] = torch.Tensor(done)
+        self.state_start[ind] = state_start.cpu()
+        self.goal_start[ind] = goal_start.cpu()
+        self.reward[ind] = reward.cpu()
+        self.state_end[ind] = state_end.cpu()
+        self.done[ind] = done.cpu()
         self.offset += 1
 
     def sample(self, batch_size):
