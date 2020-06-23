@@ -102,8 +102,41 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
     while not done and step < 1000:
         frame_buffer.append(env.render(mode='rgb_array'))
         action = actor_low(torch.Tensor(state).to(device), torch.Tensor(goal).to(device)).detach().cpu()
-        if (step + 1) % policy_params.c == 0 and step > 0: goal = actor_high(state)
+        if (step + 1) % policy_params.c == 0 and step > 0:
+            goal = actor_high(state)
         state, reward, done, info = env.step(action)
+        episode_reward += reward
+        step += 1
+    print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')
+    frame_buffer = np.array(frame_buffer).transpose(0, 3, 1, 2)
+    wandb.log({"video": wandb.Video(frame_buffer, fps=30, format="mp4")})
+    env.close()
+
+
+def log_video_hrl_dev(env_name, actor_low, actor_high, params):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
+    # device = "cpu"
+    policy_params = params.policy_params
+    if env_name in envnames_mujoco:
+        env = gym.make(env_name)
+    elif env_name in envnames_ant:
+        env = create_maze_env(env_name=env_name)
+    state_dim = env.observation_space.shape[0]
+    print('\n    > Collecting current trajectory...')
+    done = False
+    step = 1
+    state = torch.Tensor(env.reset())
+    goal = torch.Tensor(torch.randn_like(state))
+    episode_reward, frame_buffer = 0, []
+    while not done and step < 200:
+        frame_buffer.append(env.render(mode='rgb_array'))
+        action = actor_low(torch.Tensor(state).to(device), torch.Tensor(goal).to(device)).detach().cpu()
+        if (step + 1) % policy_params.c == 0 and step > 0:
+            goal = actor_high(state)
+        state, reward, done, info = env.step(action)
+        for i in range(state_dim):
+            wandb.log({'state[{}]'.format(i): state[i]}, step=step)
+        # print("state {}:\n{}".format(step, state))
         episode_reward += reward
         step += 1
     print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')

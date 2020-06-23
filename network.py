@@ -73,7 +73,9 @@ class ActorLow(nn.Module):
 
     def forward(self, state, goal):
         # force to reformat input data
-        state, goal = torch.Tensor(state), torch.Tensor(goal)
+        x = 2
+        if not isinstance(state, torch.Tensor): state = torch.Tensor(state)
+        if not isinstance(goal, torch.Tensor): state = torch.Tensor(goal)
         # reformat input as batch data
         if len(state.shape) < 2: state = state[None, :]
         if len(goal.shape) < 2: goal = goal[None, :]
@@ -107,7 +109,9 @@ class CriticLow(nn.Module):
 
     def forward(self, state, goal, action):
         # force to reformat input data
-        state, goal, action = torch.Tensor(state), torch.Tensor(goal), torch.Tensor(action)
+        if not isinstance(state, torch.Tensor): state = torch.Tensor(state)
+        if not isinstance(goal, torch.Tensor): state = torch.Tensor(goal)
+        if not isinstance(action, torch.Tensor): state = torch.Tensor(action)
         # reformat input as batch data
         if len(state.shape) < 2: state = state[None, :]
         if len(goal.shape) < 2: goal = goal[None, :]
@@ -120,7 +124,9 @@ class CriticLow(nn.Module):
 
     def q1(self, state, goal, action):
         # force to reformat input data
-        state, goal, action = torch.Tensor(state), torch.Tensor(goal), torch.Tensor(action)
+        if not isinstance(state, torch.Tensor): state = torch.Tensor(state)
+        if not isinstance(goal, torch.Tensor): state = torch.Tensor(goal)
+        if not isinstance(action, torch.Tensor): state = torch.Tensor(action)
         # reformat input as batch data
         if len(state.shape) < 2: state = state[None, :]
         if len(goal.shape) < 2: goal = goal[None, :]
@@ -147,7 +153,7 @@ class ActorHigh(nn.Module):
 
     def forward(self, state):
         # force to reformat input data
-        state = torch.Tensor(state)
+        if not isinstance(state, torch.Tensor): state = torch.Tensor(state)
         # reformat input as batch data
         if len(state.shape) < 2: state = state[None, :]
         # forward propagate
@@ -178,7 +184,7 @@ class CriticHigh(nn.Module):
 
     def forward(self, state, next_goal):
         # force to reformat input data
-        state = torch.Tensor(state)
+        if not isinstance(state, torch.Tensor): state = torch.Tensor(state)
         # reformat input as batch data
         if len(state.shape) < 2: state = state[None, :]
         obs_action = torch.cat([state, next_goal], 1)
@@ -189,7 +195,7 @@ class CriticHigh(nn.Module):
 
     def q1(self, state, next_goal):
         # force to reformat input data
-        state = torch.Tensor(state)
+        if not isinstance(state, torch.Tensor): state = torch.Tensor(state)
         # reformat input as batch data
         if len(state.shape) < 2: state = state[None, :]
         obs_action = torch.cat([state, next_goal], 1)

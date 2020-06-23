@@ -35,15 +35,22 @@ def done_judge_low(state, goal, next_state):
 def off_policy_correction(actor, action_sequence, state_sequence, goal, params):
     # initialize
     policy_params = params.policy_params
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
     action_sequence = torch.stack(action_sequence)
     state_sequence = torch.stack(state_sequence)
+    max_goal = torch.Tensor(policy_params.max_goal)
     # prepare candidates
     mean = state_sequence[-1] - state_sequence[0]
-    std = 0.5 * policy_params.max_goal
-    candidates = [np.random.normal(loc=mean, scale=std, size=params.state_dim).clip(-policy_params.max_goal, policy_params.max_goal).astype(np.float32) for i in range(8)]
+    std = 0.5 * torch.Tensor(policy_params.max_goal)
+    x = np.random.normal(loc=mean, scale=std, size=params.state_dim).astype(np.float32)
+    candidates = [torch.min(torch.max(torch.Tensor(np.random.normal(loc=mean, scale=std, size=params.state_dim).astype(np.float32)), -max_goal), max_goal) for i in range(8)]
     candidates.append(state_sequence[-1] - state_sequence[0])
     candidates.append(goal)
     # select maximal
+    candidates = torch.stack(candidates).to(device)
+    action_sequence = action_sequence.to(device)
+    state_sequence = state_sequence.to(device)
+    actor(state_sequence, state_sequence[0] + candidates[0] - state_sequence)
     probability = [-functional.mse_loss(action_sequence, actor(state_sequence, state_sequence[0] + candidate - state_sequence)) for candidate in candidates]
     goal_hat = candidates[np.argmax(probability)]
     return torch.Tensor(goal_hat)
@@ -88,13 +95,14 @@ def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_tar
 
 def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_target, critic_eval, critic_target, critic_optimizer, actor_optimizer, params):
     policy_params = params.policy_params
+    max_goal = torch.Tensor(policy_params.max_goal)
     # sample mini-batch transitions
     state_start, goal, reward, state_end, done = experience_buffer.sample(batch_size)
     with torch.no_grad():
         # select action according to policy and add clipped noise
         policy_noise = torch.Tensor(np.random.normal(loc=0, scale=policy_params.sigma_h, size=params.state_dim).astype(np.float32) * policy_params.policy_noise) \
             .clamp(-policy_params.noise_clip, policy_params.noise_clip)
-        new_goal = (actor_target(state_end) + policy_noise).clamp(-policy_params.max_goal, policy_params.max_goal)
+        new_goal = torch.min(torch.max(actor_target(state_end) + policy_noise, -max_goal), max_goal)
         # clipped double Q-learning
         q_target_1, q_target_2 = critic_target(state_end, new_goal)
         target_q = torch.min(q_target_1, q_target_2)
@@ -192,12 +200,14 @@ def train(params):
         # > high-level collection
         if (t + 1) % policy_params.c == 0 and t > 0:
             # >> sample goal
-            max_goal = policy_params.max_goal
+            max_goal = torch.Tensor(policy_params.max_goal)
             if t < policy_params.start_timestep:
-                new_goal = (torch.randn_like(state) * max_goal).clamp(-max_goal, max_goal)
+                new_goal = (torch.randn_like(state) * max_goal)
+                new_goal = torch.min(torch.max(new_goal, -max_goal), max_goal)
             else:
                 expl_noise_goal = np.random.normal(loc=0, scale=max_goal*policy_params.expl_noise, size=params.state_dim).astype(np.float32)
-                new_goal = (actor_eval_h(state_sequence[0].to(device)).detach().cpu() + expl_noise_goal).clamp(-max_goal, max_goal).squeeze()
+                new_goal = (actor_eval_h(state_sequence[0].to(device)).detach().cpu() + expl_noise_goal).squeeze()
+                new_goal = torch.min(torch.max(new_goal, -max_goal), max_goal)
             goal_hat = off_policy_correction(actor_target_l, action_sequence, state_sequence, goal_sequence[0], params)
             # goal_hat = goal_sequence[0]
             # >> collect step-high
@@ -239,12 +249,18 @@ def train(params):
 
 
 if __name__ == "__main__":
-    gym.logger.set_level(40)
+    # gym.logger.set_level(40)
     env_name = "AntMaze"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
+    max_goal = [
+                10., 10., .5,                                   # 0-2
+                1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,     # 3-13
+                30, 30, 30, 30, 30, 30, 30,                     # 14-20
+                30, 30, 30, 30, 30, 30, 30, 30,                 # 21-28
+                1.]                                             # 29
     policy_params = ParamDict(
         seed=0,
         c=10,
@@ -254,7 +270,7 @@ if __name__ == "__main__":
         sigma_l=1.,
         sigma_h=1.,
         max_action=max_action,
-        max_goal=10,
+        max_goal=max_goal,
         discount=0.99,
         policy_freq=2,
         tau=5e-3,

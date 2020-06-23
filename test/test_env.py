@@ -4,12 +4,14 @@ import os
 from utils import get_env
 
 import torch
+
 sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
 
 import numpy as np
 import wandb
-from utils import envnames_ant, log_video_hrl, ParamDict
+from utils import envnames_ant, log_video_hrl, log_video_hrl_dev, ParamDict
 from network import ActorLow, ActorHigh
+
 wandb.init(project="ziang-hiro")
 import gym
 from pyvirtualdisplay import Display
@@ -86,13 +88,15 @@ def test_env(env_name):
 
 def test_log_video_hrl(use_cuda=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if use_cuda else "cpu"
-    policy_params = ParamDict(
-        c=10,
-    )
-    params = ParamDict(
-        policy_params=policy_params,
-        use_cuda=False
-    )
+    policy_params = ParamDict(c=10, )
+    params = ParamDict(policy_params=policy_params, use_cuda=False)
+
+    def rand_actor_low(x, y):
+        return torch.Tensor(np.random.normal(size=action_dim)) * max_action
+
+    def rand_actor_high(x):
+        return torch.Tensor(np.random.normal(size=state_dim)) * 10
+
     for env_name in envnames_ant:
         env = create_maze_env(env_name=env_name)
         state_dim = env.observation_space.shape[0]
@@ -100,7 +104,38 @@ def test_log_video_hrl(use_cuda=False):
         max_action = float(env.action_space.high[0])
         actor_low = ActorLow(state_dim, action_dim, max_action).to(device)
         actor_high = ActorHigh(state_dim, max_action).to(device)
-        log_video_hrl(env_name, actor_low, actor_high, params)
+        log_video_hrl(env_name, rand_actor_low, rand_actor_high, params)
+
+
+def probe_action_single(env_name, ind, use_cuda=False):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if use_cuda else "cpu"
+    policy_params = ParamDict(c=10,)
+    params = ParamDict(policy_params=policy_params, use_cuda=False)
+
+    def rand_actor_low(x, y):
+        action = torch.zeros(action_dim)
+        # action[ind] = max_action / 500.
+        # action = torch.zeros(action_dim)
+        action = (torch.normal(mean=torch.zeros(action_dim), std=torch.ones(action_dim)) * max_action).clamp(-max_action, max_action)
+        # action = (torch.ones(action_dim) * max_action / 1).clamp(-max_action, max_action)
+        return action
+
+    def rand_actor_high(x):
+        action = torch.Tensor(np.random.normal(size=state_dim)) * 10
+        return action
+
+    env = create_maze_env(env_name=env_name)
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    max_action = float(env.action_space.high[0])
+    log_video_hrl_dev(env_name, rand_actor_low, rand_actor_high, params)
+
+
+def probe_action(env_name, use_cuda=False):
+    env = create_maze_env(env_name=env_name)
+    action_dim = env.action_space.shape[0]
+    for i in range(action_dim):
+        probe_action_single(env_name, i)
 
 
 if __name__ == "__main__":
@@ -109,4 +144,7 @@ if __name__ == "__main__":
     # interact_envs_display(video=True)
     # interact_env('AntMaze', video=False)
     # test_env("InvertedPendulum-v2")
-    test_log_video_hrl()
+    # test_log_video_hrl()
+    # probe_action("AntMaze")
+    probe_action_single("AntMaze", 0)
+
