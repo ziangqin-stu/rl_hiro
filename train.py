@@ -1,12 +1,7 @@
 """
 HIRO training process
 """
-import os
-import sys
-
-import gym
-
-sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
+from torch import Tensor
 import copy
 import torch
 from torch.nn import functional
@@ -22,33 +17,35 @@ def h_function(state, goal, next_state):
 
 
 def intrinsic_reward(state, goal, next_state):
-    return -torch.sum(torch.pow(state + goal - next_state, 2))
+    # low-level dense reward (L2 norm), provided by high-level policy
+    return torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
 
 
 def done_judge_low(state, goal, next_state):
-    # return torch.Tensor(state).equal(torch.Tensor(goal))
-    done = torch.abs(intrinsic_reward(state, goal, next_state)) < 10.
-    return torch.Tensor([done])
+    # define low-level success: same as high-level success (L2 norm < 5, paper B.2.2)
+    l2_norm = torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
+    done = (l2_norm < 5.)
+    return Tensor([done])
 
 
-def off_policy_correction(actor, action_sequence, state_sequence, goal, params):
+def off_policy_correction(actor, action_sequence, state_sequence, state_dim, goal, max_goal, device):
     # initialize
-    policy_params = params.policy_params
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
     action_sequence = torch.stack(action_sequence).to(device)
     state_sequence = torch.stack(state_sequence).to(device)
-    max_goal = torch.Tensor(policy_params.max_goal)
+    max_goal = max_goal.cpu()
     # prepare candidates
     mean = (state_sequence[-1] - state_sequence[0]).cpu()
     std = 0.5 * max_goal
-    candidates = [torch.min(torch.max(torch.Tensor(np.random.normal(loc=mean, scale=std, size=params.state_dim).astype(np.float32)), -max_goal), max_goal) for i in range(8)]
+    candidates = [torch.min(torch.max(Tensor(np.random.normal(loc=mean, scale=std, size=state_dim).astype(np.float32)), -max_goal), max_goal) for _ in range(8)]
     candidates.append(mean)
     candidates.append(goal.cpu())
     # select maximal
     candidates = torch.stack(candidates).to(device)
-    probability = [-functional.mse_loss(action_sequence, actor(state_sequence, state_sequence[0] + candidate - state_sequence)) for candidate in candidates]
-    goal_hat = candidates[np.argmax(probability)]
-    return goal_hat.cpu()
+    surr_prob = [-functional.mse_loss(action_sequence, actor(state_sequence, state_sequence[0] + candidate - state_sequence)) for candidate in candidates]
+    index = int(np.argmax(surr_prob))
+    updated = (index != 9)
+    goal_hat = candidates[index]
+    return goal_hat.cpu(), updated
 
 
 def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_target, critic_eval, critic_target, critic_optimizer, actor_optimizer, params):
@@ -59,7 +56,7 @@ def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     state, goal, action, reward, next_state, next_goal, done = experience_buffer.sample(batch_size)
     with torch.no_grad():
         # select action according to policy and add clipped noise
-        policy_noise = torch.Tensor(np.random.normal(loc=0, scale=policy_params.sigma_l, size=params.action_dim).astype(np.float32) * policy_params.policy_noise)\
+        policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.sigma_l, size=params.action_dim).astype(np.float32) * policy_params.policy_noise)\
             .clamp(-policy_params.noise_clip, policy_params.noise_clip).to(device)
         next_action = (actor_target(next_state, next_goal) + policy_noise).clamp(-policy_params.max_action, policy_params.max_action)
         # clipped double Q-learning
@@ -92,12 +89,12 @@ def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_tar
 def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_target, critic_eval, critic_target, critic_optimizer, actor_optimizer, params):
     policy_params = params.policy_params
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
-    max_goal = torch.Tensor(policy_params.max_goal).to(device)
+    max_goal = Tensor(policy_params.max_goal).to(device)
     # sample mini-batch transitions
     state_start, goal, reward, state_end, done = experience_buffer.sample(batch_size)
     with torch.no_grad():
         # select action according to policy and add clipped noise
-        policy_noise = torch.Tensor(np.random.normal(loc=0, scale=policy_params.sigma_h, size=params.state_dim).astype(np.float32) * policy_params.policy_noise) \
+        policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.sigma_h, size=params.state_dim).astype(np.float32) * policy_params.policy_noise) \
             .clamp(-policy_params.noise_clip, policy_params.noise_clip).to(device)
         next_goal = torch.min(torch.max(actor_target(state_end) + policy_noise, -max_goal), max_goal)
         # clipped double Q-learning
@@ -128,123 +125,131 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
 
 
 def train(params):
-    # Initialization
+    # 1. Initialization
+    # 1.1 utils
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
     policy_params = params.policy_params
+    max_goal = Tensor(policy_params.max_goal).to(device)
+    state_dim = params.state_dim
+    action_dim = params.action_dim
+    max_action = policy_params.max_action
+    expl_noise = policy_params.expl_noise
+    discount = policy_params.discount
+    max_timestep = policy_params.max_timestep
+    c = policy_params.c
+    start_timestep = policy_params.start_timestep
+    log_interval = params.log_interval
+    env_name = params.env_name
+    video_interval = params.video_interval
+    save_video = params.save_video
+    batch_size = policy_params.batch_size
     env = get_env(params.env_name)
     video_log_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     state_print_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     time_logger = TimeLogger()
-
-    actor_eval_h = ActorHigh(params.state_dim, torch.Tensor(policy_params.max_goal).to(device)).to(device)
+    # 1.2 rl components
+    # 1.2.1 high-level
+    actor_eval_h = ActorHigh(state_dim, max_goal).to(device)
     actor_target_h = copy.deepcopy(actor_eval_h).to(device).to(device)
     actor_optimizer_h = torch.optim.Adam(actor_eval_h.parameters(), lr=policy_params.actor_lr)
-    critic_eval_h = CriticHigh(params.state_dim).to(device)
+    critic_eval_h = CriticHigh(state_dim).to(device)
     critic_target_h = copy.deepcopy(critic_eval_h).to(device).to(device)
     critic_optimizer_h = torch.optim.Adam(critic_eval_h.parameters(), lr=policy_params.critic_lr)
-    experience_buffer_h = ExperienceBufferHigh(policy_params.max_timestep, params.state_dim, params.use_cuda)
-
-    actor_eval_l = ActorLow(params.state_dim, params.action_dim, policy_params.max_action).to(device)
+    experience_buffer_h = ExperienceBufferHigh(policy_params.max_timestep, state_dim, params.use_cuda)
+    # 1.2.1 low-level
+    actor_eval_l = ActorLow(state_dim, action_dim, policy_params.max_action).to(device)
     actor_target_l = copy.deepcopy(actor_eval_l).to(device)
     actor_optimizer_l = torch.optim.Adam(actor_eval_l.parameters(), lr=policy_params.actor_lr)
-    critic_eval_l = CriticLow(params.state_dim, params.action_dim).to(device)
+    critic_eval_l = CriticLow(state_dim, action_dim).to(device)
     critic_target_l = copy.deepcopy(critic_eval_l).to(device)
     critic_optimizer_l = torch.optim.Adam(critic_eval_l.parameters(), lr=policy_params.critic_lr)
-    experience_buffer_l = ExperienceBufferLow(policy_params.max_timestep, params.state_dim, params.action_dim, params.use_cuda)
-
-    # Set Seed
+    experience_buffer_l = ExperienceBufferLow(policy_params.max_timestep, state_dim, action_dim, params.use_cuda)
+    # 1.3 set seeds
     env.seed(policy_params.seed)
     torch.manual_seed(policy_params.seed)
     np.random.seed(policy_params.seed)
 
-    # Training Algorithm (TD3)
+    # 2. Training Algorithm (TD3)
+    # 2.1 initialize
     time_logger.time_spent()
     total_it = [0]
-    episode_reward_l, episode_reward_h, episode_timestep_l, episode_timestep_h, episode_num_l, episode_num_h = 0, 0, 0, 0, 0, 0
-    state, done_l = torch.Tensor(env.reset()).to(device), False
+    episode_reward_l, episode_reward_h, episode_num_l, episode_num_h, episode_timestep_l, episode_timestep_h, = 0, 0, 0, 0, 1, 1
+    state, done_l = Tensor(env.reset()).to(device), False
     goal = torch.randn_like(state)
-    state_sequence, goal_sequence, action_sequence, next_state_sequence, next_goal_sequence, reward_sequence, done_h_sequence = [], [], [], [], [], [], []
-    for t in range(policy_params.max_timestep):
-        episode_timestep_l += 1
-        episode_timestep_h += 1
-        # > low-level collection
-        # >> sample action: SARSA style
-        max_action = policy_params.max_action
-        if t < policy_params.start_timestep:
+    state_sequence, goal_sequence, action_sequence = [], [], []
+    # 2.2 training loop
+    for t in range(max_timestep):
+        # 2.2.1 sample low-level action
+        if t < start_timestep:
             action = env.action_space.sample()
         else:
-            expl_noise_action = np.random.normal(loc=0, scale=max_action*policy_params.expl_noise, size=params.action_dim).astype(np.float32)
+            expl_noise_action = np.random.normal(loc=0, scale=max_action*expl_noise, size=action_dim).astype(np.float32)
             action = (actor_eval_l(state, goal).detach().cpu() + expl_noise_action).clamp(-max_action, max_action).squeeze()
-
-        # >> perform action
+        # 2.2.2 interact environment
         next_state, reward, done_h, info = env.step(action)
-        # >> collect step_low
-        next_state, action, reward = torch.Tensor(next_state).to(device), torch.Tensor(action), torch.Tensor([reward])
+        next_state, action, reward, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward]), Tensor([done_h])
+        # 2.2.3 collect low-level steps
         intri_reward = intrinsic_reward(state, goal, next_state)
         done_l = done_judge_low(state, goal, next_state)
         next_goal = h_function(state, goal, next_state)
         experience_buffer_l.add(state, goal, action, intri_reward, next_state, next_goal, done_l)
+        # 2.2.4 update low-level loop
         state = next_state
-        # >> update loggers
-        episode_reward_l = intri_reward + policy_params.discount * episode_reward_l
-        episode_reward_h = reward + policy_params.discount * episode_reward_h
-        # >> collect low-level state sequence
-        done_h = torch.Tensor([done_h])
+        episode_reward_l = intri_reward + discount * episode_reward_l
+        episode_reward_h = reward + discount * episode_reward_h
+        # 2.2.5 collect low-level perform sequence
         state_sequence.append(state)
         action_sequence.append(action)
-        next_state_sequence.append(next_state)
-        next_goal_sequence.append(next_goal)
         goal_sequence.append(goal)
-        reward_sequence.append(reward)
-        done_h_sequence.append(done_h)
-        # > high-level collection
-        if (t + 1) % policy_params.c == 0 and t > 0:
-            # >> sample goal
-            max_goal = torch.Tensor(policy_params.max_goal).to(device)
-            if t < policy_params.start_timestep:
+
+        if (t + 1) % c == 0 and t > 0:
+            # 2.2.6 sample high-level goal
+            if t < start_timestep:
                 new_goal = (torch.randn_like(state) * max_goal)
                 new_goal = torch.min(torch.max(new_goal, -max_goal), max_goal)
             else:
-                expl_noise_goal = np.random.normal(loc=0, scale=max_goal.cpu()*policy_params.expl_noise, size=params.state_dim).astype(np.float32)
+                expl_noise_goal = np.random.normal(loc=0, scale=max_goal.cpu()*expl_noise, size=state_dim).astype(np.float32)
                 new_goal = (actor_eval_h(state_sequence[0].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
                 new_goal = torch.min(torch.max(new_goal, -max_goal), max_goal)
-            goal_hat = off_policy_correction(actor_target_l, action_sequence, state_sequence, goal_sequence[0], params)
-            if state_print_trigger.good2log(t, 200):
-                print("\n        > goal: {}".format(goal_sequence[0]))
-                print("        > goal_hat: {}".format(goal_hat))
-                print("        > state: {}".format(state_sequence[0]))
-                print("        > action_1: {}\n".format(action_sequence[0]))
-            # goal_hat = goal_sequence[0]
-            # >> collect step-high
+            # > off-policy correction
+            goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, state_dim, goal_sequence[0], max_goal, device)
+            # 2.2.7 collect high-level steps
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state, done_h)
+            if state_print_trigger.good2log(t, 200):
+                print("\n        > state: {}".format(state_sequence[0]))
+                print("        > goal-1: {}".format(goal_sequence[0]))
+                if updated: print("        > goal_hat: {}".format(goal_hat))
+                else: print("        > goal_hat not updated")
+                print("        > action-1: {}\n".format(action_sequence[0]))
+            # 2.2.8 update high-level loop
             goal = new_goal
-            state_sequence, goal_sequence, action_sequence, next_state_sequence, next_goal_sequence, reward_sequence, done_h_sequence = [], [], [], [], [], [], []
+            state_sequence, action_sequence, goal_sequence = [], [], []
 
-        # > update networks
-        # >> low-level update
-        if t >= policy_params.start_timestep:
-            target_q_l, critic_loss_l, actor_loss_l = step_update_l(experience_buffer_l, policy_params.batch_size, total_it, actor_eval_l, actor_target_l,
-                          critic_eval_l, critic_target_l, critic_optimizer_l, actor_optimizer_l, params)
-        # >> high-level update
-        if t >= policy_params.start_timestep and t % policy_params.c == 0 and t > 0:
+        # 2.2.9 update networks
+        # 2.2.9.1 low-level update
+        if t >= start_timestep:
+            target_q_l, critic_loss_l, actor_loss_l = \
+                step_update_l(experience_buffer_l, batch_size, total_it, actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, critic_optimizer_l, actor_optimizer_l, params)
+        # 2.2.9.2 high-level update
+        if t >= start_timestep and t % c == 0 and t > 0:
             target_q_h, critic_loss_h, actor_loss_h = \
-                step_update_h(experience_buffer_h, policy_params.batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
-        # >> record logger
-        if t >= policy_params.start_timestep and t % params.log_interval == 0 and t > 0:
-            wandb.log({'target_q low': torch.mean(target_q_l).squeeze()}, step=t-params.policy_params.start_timestep)
-            wandb.log({'critic_loss low': torch.mean(critic_loss_l).squeeze()}, step=t-params.policy_params.start_timestep)
-            if actor_loss_l is not None: wandb.log({'actor_loss low': torch.mean(actor_loss_l).squeeze()}, step=t-params.policy_params.start_timestep)
-            wandb.log({'target_q high': torch.mean(target_q_h).squeeze()}, step=t-params.policy_params.start_timestep)
-            wandb.log({'critic_loss high': torch.mean(critic_loss_h).squeeze()}, step=t-params.policy_params.start_timestep)
-            if actor_loss_h is not None: wandb.log({'actor_loss high': torch.mean(actor_loss_h).squeeze()}, step=t-params.policy_params.start_timestep)
-        # >> start new episode if done
-        if bool(done_l) or episode_timestep_l >= policy_params.c:
+                step_update_h(experience_buffer_h, batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
+        # 2.2.10 logger record
+        if t >= start_timestep and t % log_interval == 0 and t > 0:
+            wandb.log({'target_q low': torch.mean(target_q_l).squeeze()}, step=t-start_timestep)
+            wandb.log({'critic_loss low': torch.mean(critic_loss_l).squeeze()}, step=t-start_timestep)
+            if actor_loss_l is not None: wandb.log({'actor_loss low': torch.mean(actor_loss_l).squeeze()}, step=t-start_timestep)
+            wandb.log({'target_q high': torch.mean(target_q_h).squeeze()}, step=t-start_timestep)
+            wandb.log({'critic_loss high': torch.mean(critic_loss_h).squeeze()}, step=t-start_timestep)
+            if actor_loss_h is not None: wandb.log({'actor_loss high': torch.mean(actor_loss_h).squeeze()}, step=t-start_timestep)
+        # 2.2.11 start new episode
+        if bool(done_l) or episode_timestep_l >= c:
             print(f"    > Total T: {t + 1} Episode_Low Num: {episode_num_l + 1} Episode_Low T: {episode_timestep_l} Reward_Low: {float(episode_reward_l):.3f} Reward_High: {float(episode_reward_h):.3f}")
-            if t >= policy_params.start_timestep:
-                wandb.log({'episode reward low': episode_reward_l}, step=t-params.policy_params.start_timestep)
-                wandb.log({'episode reward high': episode_reward_h}, step=t-params.policy_params.start_timestep)
-            if params.save_video and video_log_trigger.good2log(t, params.video_interval):
-                log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
+            if t >= start_timestep:
+                wandb.log({'episode reward low': episode_reward_l}, step=t-start_timestep)
+                wandb.log({'episode reward high': episode_reward_h}, step=t-start_timestep)
+            if save_video and video_log_trigger.good2log(t, video_interval):
+                log_video_hrl(env_name, actor_target_l, actor_target_h, params)
                 time_logger.sps(t)
                 time_logger.time_spent()
             episode_reward_l, episode_reward_h, episode_timestep_l = 0, 0, 0
@@ -252,10 +257,14 @@ def train(params):
         if bool(done_h):
             episode_num_h += 1
             print(f"    >>> Total T: {t + 1} Episode_High Num: {episode_num_h + 1} Episode_High T: {episode_timestep_h} Reward_High: {float(episode_reward_h):.3f}")
-            state, done_h = torch.Tensor(env.reset()), False
+            state, done_h = Tensor(env.reset()), False
             episode_timestep_h = 0
+        # 2.2.12 update training loop
+        episode_timestep_l += 1
+        episode_timestep_h += 1
+    # 2.3 log training result
     for i in range(3):
-        log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
+        log_video_hrl(env_name, actor_target_l, actor_target_h, params)
 
 
 if __name__ == "__main__":
@@ -298,10 +307,11 @@ if __name__ == "__main__":
         env_name=env_name,
         state_dim=state_dim,
         action_dim=action_dim,
-        video_interval=int(1e5),
+        video_interval=int(1e4),
         log_interval=1,
         save_video=True,
         use_cuda=True
     )
+
     wandb.init(project="ziang-hiro-new")
     train(params=params)

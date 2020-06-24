@@ -18,10 +18,15 @@
 
 #### Plan
 
-- [ ] run experiment
-- [ ] shower
+- [x] add time/state logger
+- [x] run experiment
+- [x] shower
 - [ ] re-check code again 
+- [ ] reformat to speedup
+  - [ ] code clean
+  - [ ] params' unbox
 - [ ] follow a run
+- [ ] check env on GPU
 - [ ] read env codes
 
 
