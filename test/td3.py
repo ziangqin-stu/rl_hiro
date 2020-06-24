@@ -65,7 +65,7 @@ def train(params):
     policy_params = params.policy_params
     env = get_env(params.env_name)
     video_log_trigger = VideoLoggerTrigger(start_ind=policy_params.start_timestep)
-    experience_buffer = ExperienceBufferTD3(policy_params.max_timestep, params.state_dim, params.action_dim)
+    experience_buffer = ExperienceBufferTD3(policy_params.max_timestep, params.state_dim, params.action_dim, params.use_cuda)
     actor_eval = ActorTD3(params.state_dim, params.action_dim, policy_params.max_action).to(device)
     actor_target = copy.deepcopy(actor_eval)
     actor_optimizer = torch.optim.Adam(actor_eval.parameters(), lr=policy_params.lr)
@@ -100,7 +100,7 @@ def train(params):
         experience_buffer.add(state, action, reward, next_state, done)
         # update episode logger
         state = next_state
-        episode_reward += reward
+        episode_reward = reward + episode_reward * policy_params.discount
         # TD step update
         if t >= policy_params.start_timestep:
             target_q, critic_loss, actor_loss = \
@@ -122,13 +122,15 @@ def train(params):
         # log video
         if params.save_video and video_log_trigger.good2log(t, params.video_interval): log_video(params.env_name, actor_target)
     print_cmd_hint(params, "end_train")
+    for i in range(3):
+        log_video(params.env_name, actor_target)
 
 
 """
 Quick Test
 """
 if __name__ == "__main__":
-    env_name = "InvertedPendulum-v2"
+    env_name = "Walker2d-v2"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
@@ -144,8 +146,8 @@ if __name__ == "__main__":
         policy_freq=2,
         tau=5e-3,
         lr=3e-4,
-        max_timestep=int(5e4),
-        start_timestep=int(25e3),
+        max_timestep=int(1e6),
+        start_timestep=int(3e4),
         batch_size=100
     )
     params = ParamDict(
@@ -154,7 +156,8 @@ if __name__ == "__main__":
         state_dim=state_dim,
         action_dim=action_dim,
         save_video=True,
-        video_interval=int(5e4)
+        video_interval=int(5e4),
+        use_cuda=False
     )
-    wandb.init(project="ziang-hiro")
+    wandb.init(project="ziang-hiro-new")
     train(params=params)

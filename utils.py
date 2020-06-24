@@ -5,6 +5,7 @@ import sys
 import os
 
 import copy
+import time
 
 sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
 import torch
@@ -47,6 +48,25 @@ class VideoLoggerTrigger:
         return False
 
 
+class TimeLogger:
+    def __init__(self):
+        start_time = time.time()
+        sps_start_time = time.time()
+        sps_start_step = 0
+
+    def sps(self, step):
+        cur_time = time.time()
+        time_span = cur_time - self.sps_start_time
+        sps = time_span / (step - self.sps_start_step)
+        self.sps_start_time = cur_time
+        self.sps_start_step = step
+        print("    >| state per second in past {}s: {}".format(time_span, sps))
+
+    def time_spent(self):
+        time_span = time.time() - self.start_time
+        print("    >| training time: {}".format(time_span))
+
+
 envnames_ant = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']
 envnames_mujoco = ['InvertedPendulum-v2', 'InvertedDoublePendulum-v2', 'Hopper-v2', 'Humanoid-v2', 'Ant-v2',
                    'Reacher-v2', 'HalfCheetah-v2', 'Walker2d-v1']
@@ -66,8 +86,6 @@ def get_env(env_name):
 
 
 def log_video(env_name, actor):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
-    # device = "cpu"
     if env_name in envnames_mujoco:
         env = gym.make(env_name)
     elif env_name in envnames_ant:
@@ -79,7 +97,7 @@ def log_video(env_name, actor):
     frame_buffer = []
     while not done:
         frame_buffer.append(env.render(mode='rgb_array'))
-        action = actor(torch.Tensor(state).to(device)).detach().cpu()
+        action = actor(torch.Tensor(state)).detach().cpu()
         state, reward, done, info = env.step(action)
         step += 1
     print('    > Finished collection, saved video.\n')
@@ -105,9 +123,12 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
     while not done and step < 1000:
         frame_buffer.append(env.render(mode='rgb_array'))
         action = actor_low(torch.Tensor(state), torch.Tensor(goal)).detach()
+        # print("        > action: {}".format(action))
         if (step + 1) % policy_params.c == 0 and step > 0:
             goal = actor_high(state)
+            # print("\n        > goal: {}\n\n\n".format(goal))
         state, reward, done, info = env.step(action)
+        # print("\n        > state: {}".format(state))
         episode_reward += reward
         step += 1
     print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')
@@ -139,7 +160,6 @@ def log_video_hrl_dev(env_name, actor_low, actor_high, params):
         state, reward, done, info = env.step(action)
         for i in range(state_dim):
             wandb.log({'state[{}]'.format(i): state[i]}, step=step)
-        # print("state {}:\n{}".format(step, state))
         episode_reward += reward
         step += 1
     print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')

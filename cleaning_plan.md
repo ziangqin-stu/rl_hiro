@@ -9,7 +9,20 @@
 
 
 
+#### What To DO
 
+* The code is not running well!
+  * If success in 2 million steps, should learn something in 0.25 steps
+
+
+
+#### Plan
+
+- [ ] run experiment
+- [ ] shower
+- [ ] re-check code again 
+- [ ] follow a run
+- [ ] read env codes
 
 
 
@@ -25,11 +38,14 @@
   - [ ] replay buffer size (2e5)
   - [ ] done of high-level
   - [ ] action / goal range
-  - [ ] **GPU**
+  - [x] **GPU**
   - [ ] <u>**what is the maximum goal**</u>
   - [ ] **wandb video**
-- [ ] follow a run
+  - [ ] load/save
+  - [ ] <u>**AntMaze (reward, etc.)**</u>
+- [ ] **follow a run**
 - [ ] run experiment to get good results
+  - [ ] goal weird
 - [ ] check imp details with paper / code
   - [ ] networks
   - [ ] hyper-parameters

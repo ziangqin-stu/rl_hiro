@@ -12,7 +12,7 @@ import torch
 from torch.nn import functional
 import numpy as np
 import wandb
-from utils import get_env, log_video_hrl, ParamDict, VideoLoggerTrigger
+from utils import get_env, log_video_hrl, ParamDict, VideoLoggerTrigger, TimeLogger
 from network import ActorLow, ActorHigh, CriticLow, CriticHigh
 from experience_buffer import ExperienceBufferLow, ExperienceBufferHigh
 
@@ -46,7 +46,6 @@ def off_policy_correction(actor, action_sequence, state_sequence, goal, params):
     candidates.append(goal.cpu())
     # select maximal
     candidates = torch.stack(candidates).to(device)
-    actor(state_sequence, state_sequence[0] + candidates[0] - state_sequence)
     probability = [-functional.mse_loss(action_sequence, actor(state_sequence, state_sequence[0] + candidate - state_sequence)) for candidate in candidates]
     goal_hat = candidates[np.argmax(probability)]
     return goal_hat.cpu()
@@ -134,6 +133,7 @@ def train(params):
     policy_params = params.policy_params
     env = get_env(params.env_name)
     video_log_trigger = VideoLoggerTrigger(start_ind=policy_params.start_timestep)
+    time_logger = TimeLogger()
 
     actor_eval_h = ActorHigh(params.state_dim, policy_params.max_action).to(device)
     actor_target_h = copy.deepcopy(actor_eval_h).to(device).to(device)
@@ -157,6 +157,7 @@ def train(params):
     np.random.seed(policy_params.seed)
 
     # Training Algorithm (TD3)
+    time_logger.time_spent()
     total_it = [0]
     episode_reward_l, episode_reward_h, episode_timestep_l, episode_timestep_h, episode_num_l, episode_num_h = 0, 0, 0, 0, 0, 0
     state, done_l = torch.Tensor(env.reset()).to(device), False
@@ -173,6 +174,7 @@ def train(params):
         else:
             expl_noise_action = np.random.normal(loc=0, scale=max_action*policy_params.expl_noise, size=params.action_dim).astype(np.float32)
             action = (actor_eval_l(state, goal).detach().cpu() + expl_noise_action).clamp(-max_action, max_action).squeeze()
+
         # >> perform action
         next_state, reward, done_h, info = env.step(action)
         # >> collect step_low
@@ -183,8 +185,8 @@ def train(params):
         experience_buffer_l.add(state, goal, action, intri_reward, next_state, next_goal, done_l)
         state = next_state
         # >> update loggers
-        episode_reward_l += intri_reward
-        episode_reward_h += reward
+        episode_reward_l = intri_reward + policy_params.discount * episode_reward_l
+        episode_reward_h = reward + policy_params.discount * episode_reward_h
         # >> collect low-level state sequence
         done_h = torch.Tensor([done_h])
         state_sequence.append(state)
@@ -206,6 +208,10 @@ def train(params):
                 new_goal = (actor_eval_h(state_sequence[0].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
                 new_goal = torch.min(torch.max(new_goal, -max_goal), max_goal)
             goal_hat = off_policy_correction(actor_target_l, action_sequence, state_sequence, goal_sequence[0], params)
+            print("        > goal: {}".format(goal_sequence[0]))
+            print("        > goal_hat: {}".format(goal_hat))
+            print("        > state: {}".format(state_sequence[0]))
+            print("        > action_1: {}".format(action_sequence[0]))
             # goal_hat = goal_sequence[0]
             # >> collect step-high
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state, done_h)
@@ -237,6 +243,7 @@ def train(params):
                 wandb.log({'episode reward high': episode_reward_h}, step=t-params.policy_params.start_timestep)
             if params.save_video and video_log_trigger.good2log(t, params.video_interval):
                 log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
+                time_logger.sps(t)
             episode_reward_l, episode_reward_h, episode_timestep_l = 0, 0, 0
             episode_num_l += 1
         if bool(done_h):
@@ -244,11 +251,13 @@ def train(params):
             print(f"    >>> Total T: {t + 1} Episode_High Num: {episode_num_h + 1} Episode_High T: {episode_timestep_h} Reward_High: {float(episode_reward_h):.3f}")
             state, done_h = torch.Tensor(env.reset()), False
             episode_timestep_h = 0
+    for i in range(3):
+        log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
 
 
 if __name__ == "__main__":
     # gym.logger.set_level(40)
-    env_name = "AntMaze"
+    env_name = "AntPush"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
@@ -260,7 +269,7 @@ if __name__ == "__main__":
                 30, 30, 30, 30, 30, 30, 30, 30,                 # 21-28
                 1.]                                             # 29
     policy_params = ParamDict(
-        seed=0,
+        seed=123,
         c=10,
         policy_noise=0.2,
         expl_noise=0.1,
@@ -286,10 +295,10 @@ if __name__ == "__main__":
         env_name=env_name,
         state_dim=state_dim,
         action_dim=action_dim,
-        video_interval=int(1e3),
+        video_interval=int(2e4),
         log_interval=1,
         save_video=True,
         use_cuda=True
     )
-    wandb.init(project="ziang-hiro")
+    wandb.init(project="ziang-hiro-new")
     train(params=params)
