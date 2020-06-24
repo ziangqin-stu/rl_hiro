@@ -33,7 +33,7 @@ class ParamDict(dict):
         self = d
 
 
-class VideoLoggerTrigger:
+class LoggerTrigger:
     def __init__(self, start_ind=1):
         self.last_log = int(start_ind)
         self.first_log = False
@@ -50,14 +50,14 @@ class VideoLoggerTrigger:
 
 class TimeLogger:
     def __init__(self):
-        start_time = time.time()
-        sps_start_time = time.time()
-        sps_start_step = 0
+        self.start_time = time.time()
+        self.sps_start_time = time.time()
+        self.sps_start_step = 0
 
     def sps(self, step):
         cur_time = time.time()
         time_span = cur_time - self.sps_start_time
-        sps = time_span / (step - self.sps_start_step)
+        sps = (step - self.sps_start_step) / time_span
         self.sps_start_time = cur_time
         self.sps_start_step = step
         print("    >| state per second in past {}s: {}".format(time_span, sps))
@@ -109,6 +109,7 @@ def log_video(env_name, actor):
 def log_video_hrl(env_name, actor_low, actor_high, params):
     actor_low = copy.deepcopy(actor_low).cpu()
     actor_high = copy.deepcopy(actor_high).cpu()
+    actor_high.max_goal = actor_high.max_goal.to('cpu')
     policy_params = params.policy_params
     if env_name in envnames_mujoco:
         env = gym.make(env_name)
@@ -123,12 +124,9 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
     while not done and step < 1000:
         frame_buffer.append(env.render(mode='rgb_array'))
         action = actor_low(torch.Tensor(state), torch.Tensor(goal)).detach()
-        # print("        > action: {}".format(action))
         if (step + 1) % policy_params.c == 0 and step > 0:
             goal = actor_high(state)
-            # print("\n        > goal: {}\n\n\n".format(goal))
         state, reward, done, info = env.step(action)
-        # print("\n        > state: {}".format(state))
         episode_reward += reward
         step += 1
     print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')

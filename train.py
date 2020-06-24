@@ -12,7 +12,7 @@ import torch
 from torch.nn import functional
 import numpy as np
 import wandb
-from utils import get_env, log_video_hrl, ParamDict, VideoLoggerTrigger, TimeLogger
+from utils import get_env, log_video_hrl, ParamDict, LoggerTrigger, TimeLogger
 from network import ActorLow, ActorHigh, CriticLow, CriticHigh
 from experience_buffer import ExperienceBufferLow, ExperienceBufferHigh
 
@@ -27,7 +27,7 @@ def intrinsic_reward(state, goal, next_state):
 
 def done_judge_low(state, goal, next_state):
     # return torch.Tensor(state).equal(torch.Tensor(goal))
-    done = torch.abs(intrinsic_reward(state, goal, next_state)) < 1.
+    done = torch.abs(intrinsic_reward(state, goal, next_state)) < 10.
     return torch.Tensor([done])
 
 
@@ -132,10 +132,11 @@ def train(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
     policy_params = params.policy_params
     env = get_env(params.env_name)
-    video_log_trigger = VideoLoggerTrigger(start_ind=policy_params.start_timestep)
+    video_log_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
+    state_print_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     time_logger = TimeLogger()
 
-    actor_eval_h = ActorHigh(params.state_dim, policy_params.max_action).to(device)
+    actor_eval_h = ActorHigh(params.state_dim, torch.Tensor(policy_params.max_goal).to(device)).to(device)
     actor_target_h = copy.deepcopy(actor_eval_h).to(device).to(device)
     actor_optimizer_h = torch.optim.Adam(actor_eval_h.parameters(), lr=policy_params.actor_lr)
     critic_eval_h = CriticHigh(params.state_dim).to(device)
@@ -208,10 +209,11 @@ def train(params):
                 new_goal = (actor_eval_h(state_sequence[0].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
                 new_goal = torch.min(torch.max(new_goal, -max_goal), max_goal)
             goal_hat = off_policy_correction(actor_target_l, action_sequence, state_sequence, goal_sequence[0], params)
-            print("        > goal: {}".format(goal_sequence[0]))
-            print("        > goal_hat: {}".format(goal_hat))
-            print("        > state: {}".format(state_sequence[0]))
-            print("        > action_1: {}".format(action_sequence[0]))
+            if state_print_trigger.good2log(t, 200):
+                print("\n        > goal: {}".format(goal_sequence[0]))
+                print("        > goal_hat: {}".format(goal_hat))
+                print("        > state: {}".format(state_sequence[0]))
+                print("        > action_1: {}\n".format(action_sequence[0]))
             # goal_hat = goal_sequence[0]
             # >> collect step-high
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state, done_h)
@@ -295,7 +297,7 @@ if __name__ == "__main__":
         env_name=env_name,
         state_dim=state_dim,
         action_dim=action_dim,
-        video_interval=int(2e4),
+        video_interval=int(1e5),
         log_interval=1,
         save_video=True,
         use_cuda=True
