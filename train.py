@@ -246,6 +246,7 @@ def train(params):
             if params.save_video and video_log_trigger.good2log(t, params.video_interval):
                 log_video_hrl(params.env_name, actor_target_l, actor_target_h, params)
                 time_logger.sps(t)
+                time_logger.time_spent()
             episode_reward_l, episode_reward_h, episode_timestep_l = 0, 0, 0
             episode_num_l += 1
         if bool(done_h):
