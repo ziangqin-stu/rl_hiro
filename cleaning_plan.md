@@ -21,13 +21,26 @@
 - [x] add time/state logger
 - [x] run experiment
 - [x] shower
-- [ ] re-check code again 
-- [ ] reformat to speedup
-  - [ ] code clean
-  - [ ] params' unbox
-- [ ] follow a run
-- [ ] check env on GPU
+- [ ] **re-check code again** 
+  - [x] util functions
+  - [x] TD3
+  - [ ] network
+  - [x] hierarchy frame
+    - [x] intri-reward
+    - [x] goal, next_gal, new_goal
+    - [x] reward_h
+  - [ ] hyper parameters
+  - [ ] **noise**, **max_goal**, max_action, terminate condition
+- [x] reformat to speedup
+  - [x] code clean
+  - [ ] **params' unbox**
+- [ ] **follow a run**
+- [ ] **check env **
+  - [ ] on GPU
+  - [ ] test AntPush
 - [ ] read env codes
+- [ ] evaluation code
+- [ ] load / save
 
 
 

@@ -138,7 +138,7 @@ class CriticLow(nn.Module):
 
 
 class ActorHigh(nn.Module):
-    def __init__(self, state_dim, max_goal):
+    def __init__(self, state_dim, max_goal, device):
         super(ActorHigh, self).__init__()
         self.fc = nn.Sequential(
             # (state, goal) -> goal'
@@ -149,7 +149,7 @@ class ActorHigh(nn.Module):
             nn.Linear(300, state_dim),
             nn.Tanh()
         )
-        self.max_goal = max_goal
+        self.max_goal = torch.Tensor(max_goal).to(device)
 
     def forward(self, state):
         # force to reformat input data
