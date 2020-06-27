@@ -1,13 +1,8 @@
 """
 Project utils
 """
-import sys
-import os
-
 import copy
 import time
-
-sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
 import torch
 import wandb
 import numpy as np

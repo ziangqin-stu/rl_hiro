@@ -4,7 +4,6 @@ Networks
 
 import torch
 import torch.nn as nn
-from torch.nn import functional
 
 
 class ActorTD3(nn.Module):

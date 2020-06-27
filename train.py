@@ -21,8 +21,10 @@ def initialize_params(params, device):
     max_goal = Tensor(policy_params.max_goal).to(device)
     action_dim = params.action_dim
     max_action = policy_params.max_action
-    expl_noise_std_l = policy_params.expl_noise_std_l
-    expl_noise_std_h = policy_params.expl_noise_std_h
+    # expl_noise_std_l = policy_params.expl_noise_std_l
+    expl_noise_std_l = policy_params.expl_noise_l
+    # expl_noise_std_h = policy_params.expl_noise_std_h
+    expl_noise_std_h = policy_params.expl_noise_h
     c = policy_params.c
     max_timestep = policy_params.max_timestep
     start_timestep = policy_params.start_timestep
@@ -73,6 +75,7 @@ def load_checkpoint(file_name):
         print("\n    > loading training checkpoint...")
         file_path = os.path.join(".", "save", "model", file_name)
         checkpoint = torch.load(file_path)
+        print("\n    > checkpoint file loaded! parsing data...")
         params = checkpoint['params']
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
 
@@ -98,7 +101,6 @@ def load_checkpoint(file_name):
         critic_optimizer_l.load_state_dict(checkpoint['critic_optimizer_l'])
         experience_buffer_l = checkpoint['exp_l']
 
-
         actor_eval_h.load_state_dict(checkpoint['actor_h'])
         critic_eval_h.load_state_dict(checkpoint['critic_h'])
         actor_optimizer_h.load_state_dict((checkpoint['actor_optimizer_h']))
@@ -112,7 +114,7 @@ def load_checkpoint(file_name):
 
         actor_eval_l.train(), actor_target_l.train(), critic_eval_l.train(), critic_target_l.train()
         actor_eval_h.train(), actor_target_h.train(), critic_eval_h.train(), critic_target_h.train()
-        print("    > loading success!")
+        print("    > checkpoint resume success!")
     except Exception as e:
         print(e)
     return step, params, device, logger, \
@@ -188,8 +190,10 @@ def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     state, goal, action, reward, next_state, next_goal, done = experience_buffer.sample(batch_size)
     with torch.no_grad():
         # select action according to policy and add clipped noise
+        # policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.policy_noise_std, size=params.action_dim).astype(np.float32) * policy_params.policy_noise_scale) \
+        #     .clamp(-policy_params.policy_noise_clip, policy_params.policy_noise_clip).to(device)
         policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.policy_noise_std, size=params.action_dim).astype(np.float32) * policy_params.policy_noise_scale) \
-            .clamp(-policy_params.policy_noise_clip, policy_params.policy_noise_clip).to(device)
+            .clamp(-policy_params.noise_clip, policy_params.noise_clip).to(device)
         next_action = (actor_target(next_state, next_goal) + policy_noise).clamp(-policy_params.max_action, policy_params.max_action)
         # clipped double Q-learning
         q_target_1, q_target_2 = critic_target(next_state, next_goal, next_action)
@@ -226,8 +230,10 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     state_start, goal, reward, state_end, done = experience_buffer.sample(batch_size)
     with torch.no_grad():
         # select action according to policy and add clipped noise
+        # policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.policy_noise_std, size=params.state_dim).astype(np.float32) * policy_params.policy_noise_scale) \
+            # .clamp(-policy_params.policy_noise_clip, policy_params.policy_noise_clip).to(device)
         policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.policy_noise_std, size=params.state_dim).astype(np.float32) * policy_params.policy_noise_scale) \
-            .clamp(-policy_params.policy_noise_clip, policy_params.policy_noise_clip).to(device)
+            .clamp(-policy_params.noise_clip, policy_params.noise_clip).to(device)
         next_goal = torch.min(torch.max(actor_target(state_end) + policy_noise, -max_goal), max_goal)
         # clipped double Q-learning
         q_target_1, q_target_2 = critic_target(state_end, next_goal)
@@ -416,7 +422,7 @@ if __name__ == "__main__":
         reward_scal_l=1.,
         reward_scal_h=.1,
         max_timestep=int(3e6),
-        start_timestep=int(3e2),
+        start_timestep=int(3e4),
         batch_size=100
     )
     params = ParamDict(
@@ -430,7 +436,7 @@ if __name__ == "__main__":
         prefix="checked",
         save_video=True,
         use_cuda=True,
-        checkpoint="hiro-antpush_beforecheck-it(900000)-[2020-06-26 17:34:55.795350].tar"
+        checkpoint="hiro-antpush_beforecheck-it_900000.tar"
         # checkpoint=None
     )
 
