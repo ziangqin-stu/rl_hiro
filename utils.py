@@ -64,7 +64,7 @@ class TimeLogger:
 
     def time_spent(self):
         time_span = time.time() - self.start_time
-        print("    >| training time: {}".format(time_span))
+        print("    >| training time: {} minutes".format(time_span/60))
 
 
 envnames_ant = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']

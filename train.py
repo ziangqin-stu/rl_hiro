@@ -21,8 +21,8 @@ def initialize_params(params, device):
     max_goal = Tensor(policy_params.max_goal).to(device)
     action_dim = params.action_dim
     max_action = policy_params.max_action
-    expl_noise_l = policy_params.expl_noise_l
-    expl_noise_h = policy_params.expl_noise_h
+    expl_noise_std_l = policy_params.expl_noise_std_l
+    expl_noise_std_h = policy_params.expl_noise_std_h
     c = policy_params.c
     max_timestep = policy_params.max_timestep
     start_timestep = policy_params.start_timestep
@@ -37,7 +37,7 @@ def initialize_params(params, device):
     state_print_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     checkpoint_logger = LoggerTrigger(start_ind=policy_params.start_timestep)
     time_logger = TimeLogger()
-    return policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_l, expl_noise_h,\
+    return policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
            c, max_timestep, start_timestep, discount, batch_size, \
            log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger
 
@@ -189,7 +189,7 @@ def step_update_l(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     with torch.no_grad():
         # select action according to policy and add clipped noise
         policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.policy_noise_std, size=params.action_dim).astype(np.float32) * policy_params.policy_noise_scale) \
-            .clamp(-policy_params.noise_clip, policy_params.noise_clip).to(device)
+            .clamp(-policy_params.policy_noise_clip, policy_params.policy_noise_clip).to(device)
         next_action = (actor_target(next_state, next_goal) + policy_noise).clamp(-policy_params.max_action, policy_params.max_action)
         # clipped double Q-learning
         q_target_1, q_target_2 = critic_target(next_state, next_goal, next_action)
@@ -227,7 +227,7 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     with torch.no_grad():
         # select action according to policy and add clipped noise
         policy_noise = Tensor(np.random.normal(loc=0, scale=policy_params.policy_noise_std, size=params.state_dim).astype(np.float32) * policy_params.policy_noise_scale) \
-            .clamp(-policy_params.noise_clip, policy_params.noise_clip).to(device)
+            .clamp(-policy_params.policy_noise_clip, policy_params.policy_noise_clip).to(device)
         next_goal = torch.min(torch.max(actor_target(state_end) + policy_noise, -max_goal), max_goal)
         # clipped double Q-learning
         q_target_1, q_target_2 = critic_target(state_end, next_goal)
@@ -269,7 +269,7 @@ def train(params):
         actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l, \
         actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h = load_checkpoint(params.checkpoint)
     # 1.2 utils
-    policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_l, expl_noise_h,\
+    policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
     c, max_timestep, start_timestep, discount, batch_size, \
     log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger = initialize_params(params, device)
     # 1.3 set seeds
@@ -291,7 +291,7 @@ def train(params):
         if t < start_timestep:
             action = env.action_space.sample()
         else:
-            expl_noise_action = np.random.normal(loc=0, scale=max_action * expl_noise_l, size=action_dim).astype(np.float32)
+            expl_noise_action = np.random.normal(loc=0, scale=max_action * expl_noise_std_l, size=action_dim).astype(np.float32)
             action = (actor_eval_l(state, goal).detach().cpu() + expl_noise_action).clamp(-max_action, max_action).squeeze()
         # 2.2.2 interact environment
         next_state, reward_h, done_h, info = env.step(action)
@@ -316,7 +316,7 @@ def train(params):
                 next_goal = (torch.randn_like(state) * max_goal)
                 next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
             else:
-                expl_noise_goal = np.random.normal(loc=0, scale=max_goal.cpu() * expl_noise_h, size=state_dim).astype(np.float32)
+                expl_noise_goal = np.random.normal(loc=0, scale=max_goal.cpu() * expl_noise_std_h, size=state_dim).astype(np.float32)
                 next_goal = (actor_eval_h(state_sequence[-1].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
                 next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
             # > off-policy correction
@@ -328,7 +328,9 @@ def train(params):
                 print("        > goal-1: {}".format(goal_sequence[0]))
                 if updated: print("        > goal_hat: {}".format(goal_hat))
                 else: print("        > goal_hat not updated")
-                print("        > action-1: {}\n".format(action_sequence[0]))
+                print("        > action:")
+                for i in range(len(action_sequence)):
+                    print("            {}".format(action_sequence[i].tolist()))
             # 2.2.8 update high-level loop
             state_sequence, action_sequence, goal_sequence = [], [], []
         goal = next_goal
@@ -401,9 +403,9 @@ if __name__ == "__main__":
         c=10,
         policy_noise_scale=0.2,
         policy_noise_std=1.,
-        expl_noise_l=1.,
-        expl_noise_h=1.,
-        noise_clip=0.5,
+        expl_noise_std_l=1.,
+        expl_noise_std_h=1.,
+        policy_noise_clip=0.5,
         max_action=max_action,
         max_goal=max_goal,
         discount=0.99,
@@ -413,9 +415,8 @@ if __name__ == "__main__":
         critic_lr=1e-3,
         reward_scal_l=1.,
         reward_scal_h=.1,
-        sigma_g=1.,
         max_timestep=int(3e6),
-        start_timestep=int(3e4),
+        start_timestep=int(3e2),
         batch_size=100
     )
     params = ParamDict(
@@ -426,11 +427,11 @@ if __name__ == "__main__":
         video_interval=int(2e4),
         log_interval=1,
         checkpoint_interval=int(1e5),
-        prefix="beforecheck",
-        save_video=False,
+        prefix="checked",
+        save_video=True,
         use_cuda=True,
-        # checkpoint="hiro-antpush_test-it(1000)-[2020-06-24 21:45:56.198797].tar"
-        checkpoint=None
+        checkpoint="hiro-antpush_beforecheck-it(900000)-[2020-06-26 17:34:55.795350].tar"
+        # checkpoint=None
     )
 
     wandb.init(project="ziang-hiro-new")

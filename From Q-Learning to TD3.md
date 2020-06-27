@@ -1,6 +1,6 @@
 # Off-Policy Understanding: From Q-Learning to HIRO Implementation
 
-HIRO is a variant of HRL witch is more useful than vanilla HRL. It uses all state-of-the-art techniques to achieve the best result. Understanding and implementing this algorithm from scratch is a little hard to me. <u>I write this document to help clearing my mind</u>. 
+HIRO is a variant of HRL witch is more useful than vanilla HRL. It uses all state-of-the-art techniques to achieve the best result. Understanding and implementing this algorithm from scratch is a little hard to me. I write this document to help clearing my mind. 
 
 HIRO uses TD3 as its RL algorithm. TD3 is a state-of-the-art value-based RL method modified from DDPG. It is applicable to continuous-action tasks, using double DQN, actor-critic, delayed policy update techniques. Implementing TD3 when I only understand Q-learning / DQN settings is hard. Here I try to write down the critical knowledge from Q-learning to TD3, then use them to help me to transform pseudo-code to torch code.
 
