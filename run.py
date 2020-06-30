@@ -47,7 +47,6 @@ parser.add_argument('--policy_noise_clip', default=0.5, type=float, help='explor
 parser.add_argument('--expl_noise_std_l', default=1., type=float, help='low-level policy exploration noise standard deviation')
 parser.add_argument('--expl_noise_std_h', default=1., type=float, help='low-level policy exploration noise standard deviation')
 # >> TD3 algorithm special parameters
-parser.add_argument('--policy_noise_std', default=0.1, type=float, help='policy noise standard derivation')
 parser.add_argument('--expl_noise_std_scale', default=0.1, type=float, help='exploration noise standard derivation scale')
 parser.add_argument('--lr_td3', default=0.1, type=float, help='td3 learning rate')
 parser.add_argument('--max_action_td3', default=1, type=float, help='td3 action boundary')
@@ -60,7 +59,7 @@ args = parser.parse_args()
 # =========================
 # Read Parameters from File
 # =========================
-bool_params_list = ['save_video', 'use_cuda', 'checkpoint']
+bool_params_list = ['save_video', 'use_cuda']
 true_strings = ['True', 'true', 'TRUE']
 false_string = ['False', 'false', 'FALSE']
 none_string = ['None', 'none', 'NONE']
@@ -87,7 +86,7 @@ def bool_args_preprocess(args):
             elif param in none_string:
                 setattr(args, param_name, None)
             else:
-                raise ValueError('Command line boolean argument typo.')
+                raise ValueError('Command line boolean argument typo: {}'.format(param_name))
 
 
 def bool_params_preprocess(file_param):

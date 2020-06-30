@@ -6,7 +6,7 @@ import torch
 from torch.nn import functional
 import numpy as np
 import wandb
-from utils import get_env, log_video, print_cmd_hint, ParamDict, VideoLoggerTrigger
+from utils import get_env, log_video, print_cmd_hint, ParamDict, LoggerTrigger
 from network import ActorTD3, CriticTD3
 from experience_buffer import ExperienceBufferTD3
 
@@ -32,8 +32,8 @@ def step_update(experience_buffer, batch_size, total_it, actor_eval, actor_targe
     state, action, next_state, reward, done = experience_buffer.sample(batch_size)
     with torch.no_grad():
         # select action according to policy and add clipped noise
-        noise = (torch.normal(size=action.size(), mean=0., std=policy_params.normal_std) * policy_params.policy_noise).clamp(-policy_params.noise_clip, policy_params.noise_clip)
-        next_action = (actor_target(next_state) + noise).clamp(-policy_params.max_action, policy_params.max_action)
+        noise = (torch.normal(size=action.size(), mean=0., std=policy_params.policy_noise_std) * policy_params.policy_noise_scale).clamp(-policy_params.policy_noise_clip, policy_params.policy_noise_clip)
+        next_action = (actor_target(next_state) + noise).clamp(-policy_params.max_action_td3, policy_params.max_action_td3)
         # clipped double Q-learning
         q_target_1, q_target_2 = critic_target(next_state, next_action)
         q_target = torch.min(q_target_1, q_target_2)
@@ -64,14 +64,14 @@ def train(params):
     # Initialize
     policy_params = params.policy_params
     env = get_env(params.env_name)
-    video_log_trigger = VideoLoggerTrigger(start_ind=policy_params.start_timestep)
-    experience_buffer = ExperienceBufferTD3(policy_params.max_timestep, params.state_dim, params.action_dim, params.use_cuda)
-    actor_eval = ActorTD3(params.state_dim, params.action_dim, policy_params.max_action).to(device)
+    video_log_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
+    experience_buffer = ExperienceBufferTD3(policy_params.max_timestep, params.state_dim_td3, params.action_dim_td3, params.use_cuda)
+    actor_eval = ActorTD3(params.state_dim_td3, params.action_dim_td3, policy_params.max_action_td3).to(device)
     actor_target = copy.deepcopy(actor_eval)
-    actor_optimizer = torch.optim.Adam(actor_eval.parameters(), lr=policy_params.lr)
-    critic_eval = CriticTD3(params.state_dim, params.action_dim).to(device)
+    actor_optimizer = torch.optim.Adam(actor_eval.parameters(), lr=policy_params.lr_td3)
+    critic_eval = CriticTD3(params.state_dim_td3, params.action_dim_td3).to(device)
     critic_target = copy.deepcopy(critic_eval)
-    critic_optimizer = torch.optim.Adam(critic_eval.parameters(), lr=policy_params.lr)
+    critic_optimizer = torch.optim.Adam(critic_eval.parameters(), lr=policy_params.lr_td3)
 
     # Set Seed
     env.seed(policy_params.seed)
@@ -90,10 +90,10 @@ def train(params):
             action = env.action_space.sample()
         else:
             # target policy smoothing regularization
-            max_action = policy_params.max_action
+            max_action = policy_params.max_action_td3
             action = (actor_eval(torch.Tensor(state).to(device)).detach().cpu()
-                      + np.random.normal(loc=0, scale=policy_params.max_action*policy_params.expl_noise,
-                                         size=params.action_dim).astype(np.float32)).clamp(-max_action, max_action)
+                      + np.random.normal(loc=0, scale=max_action*policy_params.expl_noise_std_scale,
+                                         size=params.action_dim_td3).astype(np.float32)).clamp(-max_action, max_action)
         # observe
         next_state, reward, done, info = env.step(action)
         # store transition tuple
@@ -137,15 +137,15 @@ if __name__ == "__main__":
     max_action = float(env.action_space.high[0])
     policy_params = ParamDict(
         seed=0,
-        normal_std=0.1,
-        policy_noise=0.2,
-        expl_noise=0.1,
-        noise_clip=0.5,
-        max_action=max_action,
+        policy_noise_std=0.1,
+        policy_noise_scale=0.2,
+        expl_noise_std_scale=0.1,
+        policy_noise_clip=0.5,
+        max_action_td3=max_action,
         discount=0.99,
         policy_freq=2,
         tau=5e-3,
-        lr=3e-4,
+        lr_td3=3e-4,
         max_timestep=int(5e4),
         start_timestep=int(25e3),
         batch_size=100
@@ -153,8 +153,8 @@ if __name__ == "__main__":
     params = ParamDict(
         policy_params=policy_params,
         env_name=env_name,
-        state_dim=state_dim,
-        action_dim=action_dim,
+        state_dim_td3=state_dim,
+        action_dim_td3=action_dim,
         save_video=True,
         video_interval=int(5e3),
         use_cuda=False

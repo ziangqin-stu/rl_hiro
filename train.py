@@ -170,7 +170,6 @@ def h_function(state, goal, next_state):
 
 def intrinsic_reward(state, goal, next_state):
     # low-level dense reward (L2 norm), provided by high-level policy
-    # return -torch.pow(sum(torch.pow(state[:-1] + goal[:-1] - next_state[:-1], 2)), 1 / 2)
     return -torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
 
 
@@ -410,7 +409,7 @@ def train(params):
                             actor_eval_l, critic_eval_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
                             actor_eval_h, critic_eval_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
                             logger, params)
-    # 2.3 log training result
+    # 2.3 log training run result
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
     print_cmd_hint(params=params, location='end_train')
