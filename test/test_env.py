@@ -1,18 +1,15 @@
 """Test Ant Enviornments"""
 import sys
 import os
-from utils import get_env
-
-import torch
-
 sys.path.append(os.path.abspath(os.path.dirname(os.getcwd())))
-
+import torch
+from utils import get_env
 import numpy as np
 import wandb
 from utils import envnames_ant, log_video_hrl, log_video_hrl_dev, ParamDict
 from network import ActorLow, ActorHigh
 
-wandb.init(project="ziang-hiro")
+# wandb.init(project="ziang-hiro")
 import gym
 from pyvirtualdisplay import Display
 from environments.create_maze_env import create_maze_env
@@ -138,6 +135,33 @@ def probe_action(env_name, use_cuda=False):
         probe_action_single(env_name, i)
 
 
+def test_mojoco(env_name):
+    env = gym.make(env_name)
+    obs_sequence, action_sequence, reward_sequence, episode_reward = [], [], [], 0
+    done = False
+    step = 0
+    obs = env.reset()
+    while not done and step < 20:
+        action = env.action_space.sample()
+        obs, reward, done, info = env.step(action)
+        step += 1
+        obs_sequence.append(obs)
+        action_sequence.append(action)
+        reward_sequence.append(reward)
+        episode_reward == reward
+
+    print("        > observation:")
+    for i in range(len(obs_sequence)):
+        print("            {}".format(obs_sequence[i].tolist()))
+    print("        > action:")
+    for i in range(len(obs_sequence)):
+        print("            {}".format(action_sequence[i].tolist()))
+    print("        > reward:")
+    for i in range(len(obs_sequence)):
+        print("            {}".format(reward_sequence[i].tolist()))
+    print("    Episode step: {}, reward: {}".format(step, episode_reward))
+
+
 if __name__ == "__main__":
     gym.logger.set_level(40)
     # show_envs()
@@ -146,5 +170,5 @@ if __name__ == "__main__":
     # test_env("InvertedPendulum-v2")
     # test_log_video_hrl()
     # probe_action("AntMaze")
-    probe_action_single("AntMaze", 0)
-
+    # probe_action_single("AntMaze", 0)
+    test_mojoco("Ant-v2")

@@ -27,7 +27,7 @@ parser.add_argument('--seed', default=4321, type=int, help='manual seed')
 parser.add_argument('--max_timestep', default=int(3e4), type=int, help='max training time step')
 parser.add_argument('--start_timestep', default=int(2e4), type=int, help='amount of random filling experience')
 parser.add_argument('--batch_size', default=int(1e2), type=int, help='batch sample size')
-parser.add_argument('--max_goal', default=None, help='goal boundary')
+# parser.add_argument('--max_goal', default=None, help='goal boundary')
 parser.add_argument('--max_action', default=30, type=int, help='action boundary')
 parser.add_argument('--c', default=10, type=int, help='high-level policy update interval')
 parser.add_argument('--policy_freq', default=2, type=int, help='delayed policy update interval')
@@ -45,12 +45,20 @@ parser.add_argument('--expl_noise_std_h', default=1., type=float, help='low-leve
 # >> parse arguments
 args = parser.parse_args()
 
+
 # =========================
 # Read Parameters from File
 # =========================
-bool_params_list = ['save_video', 'use_cuda']
+bool_params_list = ['save_video', 'use_cuda', 'checkpoint']
 true_strings = ['True', 'true', 'TRUE']
 false_string = ['False', 'false', 'FALSE']
+none_string = ['None', 'none', 'NONE']
+max_goal = [
+        10., 10., .5,  # 0-2
+        1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,  # 3-13
+        30, 30, 30, 30, 30, 30, 30,  # 14-20
+        30, 30, 30, 30, 30, 30, 30, 30,  # 21-28
+        1.]  # 29
 
 
 def bool_args_preprocess(args):
@@ -65,6 +73,8 @@ def bool_args_preprocess(args):
                 setattr(args, param_name, True)
             elif param in false_string:
                 setattr(args, param_name, False)
+            elif param in none_string:
+                setattr(args, param_name, None)
             else:
                 raise ValueError('Command line boolean argument typo.')
 

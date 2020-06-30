@@ -79,7 +79,7 @@ class ExperienceBufferLow:
     def add(self, state, goal, action, reward, next_state, next_goal, done):
         # add step experience (off-policy single steps)
         ind = self.offset
-        self.state[ind] = torch.Tensor(state.cpu())
+        self.state[ind] = state.cpu()
         self.goal[ind] = goal.cpu()
         self.action[ind] = action.cpu()
         self.reward[ind] = reward.cpu()

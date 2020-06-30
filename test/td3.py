@@ -130,7 +130,7 @@ def train(params):
 Quick Test
 """
 if __name__ == "__main__":
-    env_name = "Walker2d-v2"
+    env_name = "InvertedDoublePendulum-v2"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
@@ -146,8 +146,8 @@ if __name__ == "__main__":
         policy_freq=2,
         tau=5e-3,
         lr=3e-4,
-        max_timestep=int(1e6),
-        start_timestep=int(3e4),
+        max_timestep=int(5e4),
+        start_timestep=int(25e3),
         batch_size=100
     )
     params = ParamDict(
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         state_dim=state_dim,
         action_dim=action_dim,
         save_video=True,
-        video_interval=int(5e4),
+        video_interval=int(5e3),
         use_cuda=False
     )
     wandb.init(project="ziang-hiro-new")

@@ -9,7 +9,7 @@ import torch
 from torch.nn import functional
 import numpy as np
 import wandb
-from utils import get_env, log_video_hrl, ParamDict, LoggerTrigger, TimeLogger, print_cmd_hint
+from utils import get_env, log_video_hrl, ParamDict, LoggerTrigger, TimeLogger
 from network import ActorLow, ActorHigh, CriticLow, CriticHigh
 from experience_buffer import ExperienceBufferLow, ExperienceBufferHigh
 
@@ -290,7 +290,6 @@ def train(params):
 
     # 2. Training Algorithm (TD3)
     # 2.1 initialize
-    print_cmd_hint(params=params, location='start_train')
     time_logger.time_spent()
     total_it = [0]
     episode_reward_l, episode_reward_h, episode_num_l, episode_num_h, episode_timestep_l, episode_timestep_h, = 0, 0, 0, 0, 1, 1
@@ -319,25 +318,48 @@ def train(params):
         state = next_state
         episode_reward_l += intri_reward
         episode_reward_h += reward_h
-        # 2.2.5 record low-level experience sequence
+        # 2.2.5 collect low-level experience sequence
         state_sequence.append(state)
         action_sequence.append(action)
         intri_reward_sequence.append(intri_reward)
         goal_sequence.append(goal)
-        # 2.2.6 sample high-level goal & update next_goal
+
         if (t + 1) % c == 0 and t > 0:
+            # 2.2.6 sample high-level goal
             if t < start_timestep:
-                next_goal = (torch.randn_like(state) * max_goal)
-                next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
+                # next_goal = (torch.randn_like(state) * max_goal)
+                # next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
+                next_goal = torch.Tensor([-10, 10, 0.5,
+                                          0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
+                                          0., 0., 0., 0., 0., 0., 0.,  # 14-20
+                                          0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
+                                          0.]).to(device) - next_state
             else:
                 # expl_noise_goal = np.random.normal(loc=0, scale=max_goal.cpu() * expl_noise_std_h, size=state_dim).astype(np.float32)
                 expl_noise_goal = np.random.normal(loc=0, scale=expl_noise_std_h, size=state_dim).astype(np.float32)
-                next_goal = (actor_eval_h(state_sequence[-1].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
-                next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
+                # next_goal = (actor_eval_h(state_sequence[-1].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
+                # next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
+                next_goal = torch.Tensor([-10, 10, 0.5,
+                                          0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
+                                          0., 0., 0., 0., 0., 0., 0.,  # 14-20
+                                          0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
+                                          0.]).to(device) - next_state
+            # > off-policy correction
+            # goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, state_dim, goal_sequence[0], max_goal, device)
             # 2.2.7 collect high-level steps
-            goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, state_dim, goal_sequence[0], max_goal, device)
-            experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state_sequence[-1], done_h)
-            if state_print_trigger.good2log(t, 1000): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, updated], location='training_state')
+            # experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state, done_h)
+            if state_print_trigger.good2log(t, 1000):
+                print("        > state:")
+                for i in range(len(state_sequence)):
+                    print("            {}".format(["%.4f"%elem for elem in state_sequence[i].tolist()]))
+                print("        > goal:")
+                for i in range(len(goal_sequence)):
+                    print("            {}".format(["%.4f" % elem for elem in goal_sequence[i].tolist()]))
+                print("        > action:")
+                for i in range(len(action_sequence)):
+                    print("            {}, {}".format(["%.4f"%elem for elem in action_sequence[i].tolist()], float('%.4f'%intri_reward_sequence[i])))
+                # if updated: print("        > goal_hat: {}".format(goal_hat))
+                else: print("        > goal_hat not updated")
             # 2.2.8 update high-level loop
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
         goal = next_goal
@@ -348,18 +370,18 @@ def train(params):
             target_q_l, critic_loss_l, actor_loss_l = \
                 step_update_l(experience_buffer_l, batch_size, total_it, actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, critic_optimizer_l, actor_optimizer_l, params)
         # 2.2.9.2 high-level update
-        target_q_h, critic_loss_h, actor_loss_h = None, None, None
-        if t >= start_timestep and t % c == 0:
-            target_q_h, critic_loss_h, actor_loss_h = \
-                step_update_h(experience_buffer_h, batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
+        # target_q_h, critic_loss_h, actor_loss_h = None, None, None
+        # if t >= start_timestep and t % c == 0 and t > 0:
+        #     target_q_h, critic_loss_h, actor_loss_h = \
+        #         step_update_h(experience_buffer_h, batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
         # 2.2.10 logger record
         if t >= start_timestep and t % log_interval == 0 and t > 0:
             if target_q_l is not None: wandb.log({'target_q low': torch.mean(target_q_l).squeeze()}, step=t-start_timestep)
             if critic_loss_l is not None: wandb.log({'critic_loss low': torch.mean(critic_loss_l).squeeze()}, step=t-start_timestep)
             if actor_loss_l is not None: wandb.log({'actor_loss low': torch.mean(actor_loss_l).squeeze()}, step=t-start_timestep)
-            if target_q_h is not None: wandb.log({'target_q high': torch.mean(target_q_h).squeeze()}, step=t-start_timestep)
-            if critic_loss_h is not None: wandb.log({'critic_loss high': torch.mean(critic_loss_h).squeeze()}, step=t-start_timestep)
-            if actor_loss_h is not None: wandb.log({'actor_loss high': torch.mean(actor_loss_h).squeeze()}, step=t-start_timestep)
+            # if target_q_h is not None: wandb.log({'target_q high': torch.mean(target_q_h).squeeze()}, step=t-start_timestep)
+            # if critic_loss_h is not None: wandb.log({'critic_loss high': torch.mean(critic_loss_h).squeeze()}, step=t-start_timestep)
+            # if actor_loss_h is not None: wandb.log({'actor_loss high': torch.mean(actor_loss_h).squeeze()}, step=t-start_timestep)
         # 2.2.11 start new episode
         if bool(done_l) or episode_timestep_l >= c:
             print(
@@ -371,12 +393,14 @@ def train(params):
                 log_video_hrl(env_name, actor_target_l, actor_target_h, params)
                 time_logger.sps(t)
                 time_logger.time_spent()
+            state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
             episode_reward_l, episode_timestep_l = 0, 0
             episode_num_l += 1
-        if bool(done_h) or episode_timestep_h > 1000 or bool(done_l):
+        if bool(done_h) or episode_timestep_h > 200:
             episode_num_h += 1
             print(f"    >>> Episode End!: Total T: {t + 1} Episode_High Num: {episode_num_h + 1} Episode_High T: {episode_timestep_h} Reward_High: {float(episode_reward_h):.3f}\n")
             state, done_h = Tensor(env.reset()).to(device), Tensor([False])
+            state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
             episode_reward_l, episode_timestep_l = 0, 0
             episode_reward_h, episode_timestep_h = 0, 0
         # 2.2.12 update training loop
@@ -391,7 +415,6 @@ def train(params):
     # 2.3 log training result
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
-    print_cmd_hint(params=params, location='end_train')
 
 
 if __name__ == "__main__":
@@ -425,7 +448,7 @@ if __name__ == "__main__":
         reward_scal_l=1.,
         reward_scal_h=.1,
         max_timestep=int(3e6),
-        start_timestep=int(3e4),
+        start_timestep=int(3e2),
         batch_size=100
     )
     params = ParamDict(

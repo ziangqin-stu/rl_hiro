@@ -132,9 +132,19 @@ go to */impl_data-effiient-hrl*, install required packages:
 
 #### Test Run
 
-In terminal, type command to run a simple TD3 training process to test success ofdeploy:
+Set your wandb, modify *./test/td3.py* line 162 to your project name.
 
+In terminal, go to *./test/*, type command to run a simple TD3 training process to test success of deploy:
 
+```
+python td3.py
+```
+
+This test training is on CPU, will last for about 2-3 hours. The final results will be like: 
+
+<img src=".\save\image\td3-idp-reward.PNG" alt="td3-idp-reward" style="zoom: 20%;" />
+
+<video src=".\save\video\td3-idp.mp4"></video>
 
 ### Play Code
 

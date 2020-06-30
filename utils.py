@@ -59,7 +59,7 @@ class TimeLogger:
 
     def time_spent(self):
         time_span = time.time() - self.start_time
-        print("    >| training time: {} minutes".format(time_span/60))
+        print("    >| training time: {} minutes".format(float('%.2f'%(time_span/60))))
 
 
 envnames_ant = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']
@@ -116,12 +116,20 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
     state = torch.Tensor(env.reset())
     goal = torch.Tensor(torch.randn_like(state))
     episode_reward, frame_buffer = 0, []
-    while not done and step < 1000:
+    while not done and step < 600:
         frame_buffer.append(env.render(mode='rgb_array'))
         action = actor_low(torch.Tensor(state), torch.Tensor(goal)).detach()
+        next_state, reward, done, info = env.step(action)
         if (step + 1) % policy_params.c == 0 and step > 0:
-            goal = actor_high(state)
-        state, reward, done, info = env.step(action)
+            # goal = actor_high(state)
+            goal = torch.Tensor([-10, 10, 0.5,
+                                  0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
+                                  0., 0., 0., 0., 0., 0., 0.,  # 14-20
+                                  0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
+                                  0.]).cpu() - torch.Tensor(next_state)
+        else:
+            goal = (torch.Tensor(state) + goal - torch.Tensor(next_state)).float()
+        state = next_state
         episode_reward += reward
         step += 1
     print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')
@@ -148,9 +156,12 @@ def log_video_hrl_dev(env_name, actor_low, actor_high, params):
     while not done and step < 200:
         frame_buffer.append(env.render(mode='rgb_array'))
         action = actor_low(torch.Tensor(state).to(device), torch.Tensor(goal).to(device)).detach().cpu()
+        next_state, reward, done, info = env.step(action)
         if (step + 1) % policy_params.c == 0 and step > 0:
             goal = actor_high(state)
-        state, reward, done, info = env.step(action)
+        else:
+            goal = state + goal - next_state
+        state = next_state
         for i in range(state_dim):
             wandb.log({'state[{}]'.format(i): state[i]}, step=step)
         episode_reward += reward
@@ -162,7 +173,6 @@ def log_video_hrl_dev(env_name, actor_low, actor_high, params):
 
 
 def print_cmd_hint(params, location):
-    policy_params = params.policy_params
     if location == "start_train":
         print("\n\n==========================================================\nStart Train: {}".format(params.env_name))
         print("==========================================================")
@@ -170,6 +180,20 @@ def print_cmd_hint(params, location):
         print("\n==========================================================\nFinished Training! - {}".format(params.env_name))
         print("==========================================================\n\n")
 
-
+    elif location == "training_state":
+        state_sequence, goal_sequence, action_sequence, updated = params[:]
+        print("        > state:")
+        for i in range(len(state_sequence)):
+            print("            {}".format(["%.4f" % elem for elem in state_sequence[i].tolist()]))
+        print("        > goal:")
+        for i in range(len(goal_sequence)):
+            print("            {}".format(["%.4f" % elem for elem in goal_sequence[i].tolist()]))
+        print("        > action:")
+        for i in range(len(action_sequence)):
+            print("            {}, {}".format(["%.4f" % elem for elem in action_sequence[i].tolist()], float('%.4f' % intri_reward_sequence[i])))
+        if updated:
+            print("        > goal_hat: {}".format(goal_hat))
+        else:
+            print("        > goal_hat not updated")
 
 
