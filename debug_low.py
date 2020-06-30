@@ -9,7 +9,7 @@ import torch
 from torch.nn import functional
 import numpy as np
 import wandb
-from utils import get_env, log_video_hrl, ParamDict, LoggerTrigger, TimeLogger
+from utils import get_env, log_video_hrl_debug, ParamDict, LoggerTrigger, TimeLogger
 from network import ActorLow, ActorHigh, CriticLow, CriticHigh
 from experience_buffer import ExperienceBufferLow, ExperienceBufferHigh
 
@@ -334,12 +334,18 @@ def train(params):
                                           0., 0., 0., 0., 0., 0., 0.,  # 14-20
                                           0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
                                           0.]).to(device) - next_state
-            else:
+            elif episode_timestep_h < 200:
                 # expl_noise_goal = np.random.normal(loc=0, scale=max_goal.cpu() * expl_noise_std_h, size=state_dim).astype(np.float32)
                 expl_noise_goal = np.random.normal(loc=0, scale=expl_noise_std_h, size=state_dim).astype(np.float32)
                 # next_goal = (actor_eval_h(state_sequence[-1].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
                 # next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
                 next_goal = torch.Tensor([-10, 10, 0.5,
+                                          0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
+                                          0., 0., 0., 0., 0., 0., 0.,  # 14-20
+                                          0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
+                                          0.]).to(device) - next_state
+            else:
+                next_goal = torch.Tensor([0, 19, 0.5,
                                           0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
                                           0., 0., 0., 0., 0., 0., 0.,  # 14-20
                                           0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
@@ -390,13 +396,13 @@ def train(params):
                 wandb.log({'episode reward low': episode_reward_l}, step=t-start_timestep)
                 wandb.log({'episode reward high': episode_reward_h}, step=t-start_timestep)
             if save_video and video_log_trigger.good2log(t, video_interval):
-                log_video_hrl(env_name, actor_target_l, actor_target_h, params)
+                log_video_hrl_debug(env_name, actor_target_l, actor_target_h, params)
                 time_logger.sps(t)
                 time_logger.time_spent()
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
             episode_reward_l, episode_timestep_l = 0, 0
             episode_num_l += 1
-        if bool(done_h) or episode_timestep_h > 200:
+        if bool(done_h) or episode_timestep_h > 400:
             episode_num_h += 1
             print(f"    >>> Episode End!: Total T: {t + 1} Episode_High Num: {episode_num_h + 1} Episode_High T: {episode_timestep_h} Reward_High: {float(episode_reward_h):.3f}\n")
             state, done_h = Tensor(env.reset()).to(device), Tensor([False])
@@ -406,15 +412,15 @@ def train(params):
         # 2.2.12 update training loop
         episode_timestep_l += 1
         episode_timestep_h += 1
-        if checkpoint_logger.good2log(t, checkpoint_interval):
-            logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger]
-            save_checkpoint(t,
-                            actor_eval_l, critic_eval_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
-                            actor_eval_h, critic_eval_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
-                            logger, params)
+        # if checkpoint_logger.good2log(t, checkpoint_interval):
+        #     logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger]
+        #     save_checkpoint(t,
+        #                     actor_eval_l, critic_eval_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
+        #                     actor_eval_h, critic_eval_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
+        #                     logger, params)
     # 2.3 log training result
     for i in range(3):
-        log_video_hrl(env_name, actor_target_l, actor_target_h, params)
+        log_video_hrl_debug(env_name, actor_target_l, actor_target_h, params)
 
 
 if __name__ == "__main__":
@@ -448,7 +454,7 @@ if __name__ == "__main__":
         reward_scal_l=1.,
         reward_scal_h=.1,
         max_timestep=int(3e6),
-        start_timestep=int(3e2),
+        start_timestep=int(3e4),
         batch_size=100
     )
     params = ParamDict(

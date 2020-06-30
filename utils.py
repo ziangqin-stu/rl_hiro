@@ -121,12 +121,7 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
         action = actor_low(torch.Tensor(state), torch.Tensor(goal)).detach()
         next_state, reward, done, info = env.step(action)
         if (step + 1) % policy_params.c == 0 and step > 0:
-            # goal = actor_high(state)
-            goal = torch.Tensor([-10, 10, 0.5,
-                                  0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
-                                  0., 0., 0., 0., 0., 0., 0.,  # 14-20
-                                  0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
-                                  0.]).cpu() - torch.Tensor(next_state)
+            goal = actor_high(state)
         else:
             goal = (torch.Tensor(state) + goal - torch.Tensor(next_state)).float()
         state = next_state
@@ -164,6 +159,50 @@ def log_video_hrl_dev(env_name, actor_low, actor_high, params):
         state = next_state
         for i in range(state_dim):
             wandb.log({'state[{}]'.format(i): state[i]}, step=step)
+        episode_reward += reward
+        step += 1
+    print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')
+    frame_buffer = np.array(frame_buffer).transpose(0, 3, 1, 2)
+    wandb.log({"video": wandb.Video(frame_buffer, fps=30, format="mp4")})
+    env.close()
+
+
+def log_video_hrl_debug(env_name, actor_low, actor_high, params):
+    actor_low = copy.deepcopy(actor_low).cpu()
+    actor_high = copy.deepcopy(actor_high).cpu()
+    actor_high.max_goal = actor_high.max_goal.to('cpu')
+    policy_params = params.policy_params
+    if env_name in envnames_mujoco:
+        env = gym.make(env_name)
+    elif env_name in envnames_ant:
+        env = create_maze_env(env_name=env_name)
+    print('\n    > Collecting current trajectory...')
+    done = False
+    step = 1
+    state = torch.Tensor(env.reset())
+    goal = torch.Tensor(torch.randn_like(state))
+    episode_reward, frame_buffer = 0, []
+    while not done and step < 600:
+        frame_buffer.append(env.render(mode='rgb_array'))
+        action = actor_low(torch.Tensor(state), torch.Tensor(goal)).detach()
+        next_state, reward, done, info = env.step(action)
+        if (step + 1) % policy_params.c == 0 and step > 0:
+            # goal = actor_high(state)
+            if step < 200:
+                goal = torch.Tensor([-10, 10, 0.5,
+                                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
+                                      0., 0., 0., 0., 0., 0., 0.,  # 14-20
+                                      0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
+                                      0.]).cpu() - torch.Tensor(next_state)
+            else:
+                goal = torch.Tensor([0, 19, 0.5,
+                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
+                                     0., 0., 0., 0., 0., 0., 0.,  # 14-20
+                                     0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
+                                     0.]).cpu() - torch.Tensor(next_state)
+        else:
+            goal = (torch.Tensor(state) + goal - torch.Tensor(next_state)).float()
+        state = next_state
         episode_reward += reward
         step += 1
     print(f'    > Finished collection, saved video. Episode reward: {float(episode_reward):.3f}\n')

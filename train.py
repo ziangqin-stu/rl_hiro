@@ -294,9 +294,11 @@ def train(params):
         actor_eval_h, actor_target_h, actor_optimizer_h, critic_eval_h, critic_target_h, critic_optimizer_h, experience_buffer_h = create_rl_components(params, device)
         step = 0
     else:
+        prefix = params.prefix
         step, params, device, [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger], \
         actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l, \
         actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h = load_checkpoint(params.checkpoint)
+        params.prefix = prefix
     # 1.2 utils
     policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
     c, episode_len, max_timestep, start_timestep, discount, batch_size, \
@@ -393,7 +395,7 @@ def train(params):
             episode_num_h += 1
             if t > start_timestep: record_logger(args=[Tensor([success_number / episode_num_h])], option='success_rate', step=t-start_timestep)
             else: episode_num_h = 0
-            print(f"    >>> Episode: Total T: {t + 1} Episode_H Num: {episode_num_h+1} Episode_H T: {episode_timestep_h} Reward_Episode: {float(episode_reward):.3f} Success_Rate: {float(success_number/episode_num_h)}\n")
+            print(f"    >>> Episode: Total T: {t + 1} Episode_H Num: {episode_num_h+1} Episode_H T: {episode_timestep_h} Reward_Episode: {float(episode_reward):.3f} Success_Rate: {float(success_number/(episode_num_h+1e-6))}\n")
             # > clear loggers
             episode_reward = 0
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
@@ -429,7 +431,7 @@ if __name__ == "__main__":
         30, 30, 30, 30, 30, 30, 30, 30,  # 21-28
         1.]  # 29
     policy_params = ParamDict(
-        seed=12345,
+        seed=54321,
         c=10,
         policy_noise_scale=0.2,
         policy_noise_std=1.,
@@ -458,11 +460,11 @@ if __name__ == "__main__":
         video_interval=int(1e4),
         log_interval=1,
         checkpoint_interval=int(1e5),
-        prefix="debug+std+maxstep",
+        prefix="debug+std+maxstep+video",
         save_video=True,
         use_cuda=True,
-        # checkpoint="hiro-antpush_checked-it(1100000)-[2020-06-28 14:58:22.307268].tar"
-        checkpoint=None
+        checkpoint="hiro-antpush_debug+std+maxstep-it(300000)-[2020-06-30 05:47:00.697743].tar"
+        # checkpoint=None
     )
 
     wandb.init(project="ziang-hiro-new")
