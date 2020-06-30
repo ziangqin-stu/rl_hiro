@@ -181,7 +181,7 @@ def print_cmd_hint(params, location):
         print("==========================================================\n\n")
 
     elif location == "training_state":
-        state_sequence, goal_sequence, action_sequence, updated = params[:]
+        state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat = params[:]
         print("        > state:")
         for i in range(len(state_sequence)):
             print("            {}".format(["%.4f" % elem for elem in state_sequence[i].tolist()]))

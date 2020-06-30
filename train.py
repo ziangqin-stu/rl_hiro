@@ -26,6 +26,7 @@ def initialize_params(params, device):
     expl_noise_std_h = policy_params.expl_noise_std_h
     # expl_noise_std_h = policy_params.expl_noise_h
     c = policy_params.c
+    episode_len = policy_params.episode_len
     max_timestep = policy_params.max_timestep
     start_timestep = policy_params.start_timestep
     discount = policy_params.discount
@@ -40,7 +41,7 @@ def initialize_params(params, device):
     checkpoint_logger = LoggerTrigger(start_ind=policy_params.start_timestep)
     time_logger = TimeLogger()
     return policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
-           c, max_timestep, start_timestep, discount, batch_size, \
+           c, episode_len, max_timestep, start_timestep, discount, batch_size, \
            log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger
 
 
@@ -122,6 +123,24 @@ def load_checkpoint(file_name):
            actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h
 
 
+def record_logger(args, option, step):
+    if option == "inter_loss":
+        target_q_l, critic_loss_l, actor_loss_l, target_q_h, critic_loss_h, actor_loss_h = args[:]
+        if target_q_l is not None: wandb.log({'target_q low': torch.mean(target_q_l).squeeze()}, step=step)
+        if critic_loss_l is not None: wandb.log({'critic_loss low': torch.mean(critic_loss_l).squeeze()}, step=step)
+        if actor_loss_l is not None: wandb.log({'actor_loss low': torch.mean(actor_loss_l).squeeze()}, step=step)
+        if target_q_h is not None: wandb.log({'target_q high': torch.mean(target_q_h).squeeze()}, step=step)
+        if critic_loss_h is not None: wandb.log({'critic_loss high': torch.mean(critic_loss_h).squeeze()}, step=step)
+        if actor_loss_h is not None: wandb.log({'actor_loss high': torch.mean(actor_loss_h).squeeze()}, step=step)
+    elif option == "reward":
+        episode_reward_l, episode_reward_h = args[:]
+        wandb.log({'episode reward low': episode_reward_l}, step=step)
+        wandb.log({'episode reward high': episode_reward_h}, step=step)
+    elif option == "success_rate":
+        success_rate = args[0]
+        wandb.log({'success rate (average)': success_rate}, step=step)
+
+
 def create_rl_components(params, device):
     # low-level
     actor_eval_l = ActorLow(state_dim, action_dim, policy_params.max_action).to(device)
@@ -158,7 +177,7 @@ def intrinsic_reward(state, goal, next_state):
 def done_judge_low(state, goal, next_state):
     # define low-level success: same as high-level success (L2 norm < 5, paper B.2.2)
     l2_norm = torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
-    done = (l2_norm <= 2.5)
+    done = (l2_norm <= 5.)
     return Tensor([done])
 
 
@@ -281,7 +300,7 @@ def train(params):
         actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h = load_checkpoint(params.checkpoint)
     # 1.2 utils
     policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
-    c, max_timestep, start_timestep, discount, batch_size, \
+    c, episode_len, max_timestep, start_timestep, discount, batch_size, \
     log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger = initialize_params(params, device)
     # 1.3 set seeds
     env.seed(policy_params.seed)
@@ -293,7 +312,7 @@ def train(params):
     print_cmd_hint(params=params, location='start_train')
     time_logger.time_spent()
     total_it = [0]
-    episode_reward_l, episode_reward_h, episode_num_l, episode_num_h, episode_timestep_l, episode_timestep_h, = 0, 0, 0, 0, 1, 1
+    episode_reward_l, episode_reward_h, episode_reward, episode_num_l, episode_num_h, episode_timestep_l, episode_timestep_h, success_number = 0, 0, 0, 0, 0, 1, 1, 0
     state = Tensor(env.reset()).to(device)
     goal = torch.randn_like(state)
     state_sequence, goal_sequence, action_sequence, intri_reward_sequence = [], [], [], []
@@ -319,6 +338,7 @@ def train(params):
         state = next_state
         episode_reward_l += intri_reward
         episode_reward_h += reward_h
+        episode_reward += reward_h
         # 2.2.5 record low-level experience sequence
         state_sequence.append(state)
         action_sequence.append(action)
@@ -337,8 +357,8 @@ def train(params):
             # 2.2.7 collect high-level steps
             goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, state_dim, goal_sequence[0], max_goal, device)
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state_sequence[-1], done_h)
-            if state_print_trigger.good2log(t, 1000): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, updated], location='training_state')
-            # 2.2.8 update high-level loop
+            if state_print_trigger.good2log(t, 1000): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat], location='training_state')
+        # 2.2.8 update high-level loop
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
         goal = next_goal
 
@@ -353,31 +373,33 @@ def train(params):
             target_q_h, critic_loss_h, actor_loss_h = \
                 step_update_h(experience_buffer_h, batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
         # 2.2.10 logger record
-        if t >= start_timestep and t % log_interval == 0 and t > 0:
-            if target_q_l is not None: wandb.log({'target_q low': torch.mean(target_q_l).squeeze()}, step=t-start_timestep)
-            if critic_loss_l is not None: wandb.log({'critic_loss low': torch.mean(critic_loss_l).squeeze()}, step=t-start_timestep)
-            if actor_loss_l is not None: wandb.log({'actor_loss low': torch.mean(actor_loss_l).squeeze()}, step=t-start_timestep)
-            if target_q_h is not None: wandb.log({'target_q high': torch.mean(target_q_h).squeeze()}, step=t-start_timestep)
-            if critic_loss_h is not None: wandb.log({'critic_loss high': torch.mean(critic_loss_h).squeeze()}, step=t-start_timestep)
-            if actor_loss_h is not None: wandb.log({'actor_loss high': torch.mean(actor_loss_h).squeeze()}, step=t-start_timestep)
+        if t >= start_timestep and t % log_interval == 0: record_logger(args=[target_q_l, critic_loss_l, actor_loss_l, target_q_h, critic_loss_h, actor_loss_h], option='inter_loss', step=t-start_timestep)
         # 2.2.11 start new episode
         if bool(done_l) or episode_timestep_l >= c:
-            print(
-                f"    > Total T: {t + 1} Episode_Low Num: {episode_num_l + 1} Episode_Low T: {episode_timestep_l} Reward_Low: {float(episode_reward_l):.3f} Reward_High: {float(episode_reward_h):.3f}")
-            if t >= start_timestep:
-                wandb.log({'episode reward low': episode_reward_l}, step=t-start_timestep)
-                wandb.log({'episode reward high': episode_reward_h}, step=t-start_timestep)
+            # > record loggers
+            print(f"    > Segment: Total T: {t + 1} Episode_L Num: {episode_num_l + 1} Episode_L T: {episode_timestep_l} Reward_L: {float(episode_reward_l):.3f} Reward_H: {float(episode_reward_h):.3f}")
+            if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t-start_timestep)
             if save_video and video_log_trigger.good2log(t, video_interval):
                 log_video_hrl(env_name, actor_target_l, actor_target_h, params)
                 time_logger.sps(t)
                 time_logger.time_spent()
+            # > clear loggers
+            state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
             episode_reward_l, episode_timestep_l = 0, 0
+            episode_reward_h = 0
             episode_num_l += 1
-        if bool(done_h) or episode_timestep_h > 1000 or bool(done_l):
+        if bool(done_h) or episode_timestep_h > episode_len:
+            # > record loggers
+            if bool(done_h): success_number += 1
             episode_num_h += 1
-            print(f"    >>> Episode End!: Total T: {t + 1} Episode_High Num: {episode_num_h + 1} Episode_High T: {episode_timestep_h} Reward_High: {float(episode_reward_h):.3f}\n")
+            if t > start_timestep: record_logger(args=[Tensor([success_number / episode_num_h])], option='success_rate', step=t-start_timestep)
+            else: episode_num_h = 0
+            print(f"    >>> Episode: Total T: {t + 1} Episode_H Num: {episode_num_h+1} Episode_H T: {episode_timestep_h} Reward_Episode: {float(episode_reward):.3f} Success_Rate: {float(success_number/episode_num_h)}\n")
+            # > clear loggers
+            episode_reward = 0
+            state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
+            episode_reward_l, episode_timestep_l, episode_num_l = 0, 0, 0
             state, done_h = Tensor(env.reset()).to(device), Tensor([False])
-            episode_reward_l, episode_timestep_l = 0, 0
             episode_reward_h, episode_timestep_h = 0, 0
         # 2.2.12 update training loop
         episode_timestep_l += 1
@@ -424,8 +446,9 @@ if __name__ == "__main__":
         critic_lr=1e-3,
         reward_scal_l=1.,
         reward_scal_h=.1,
+        episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(3e4),
+        start_timestep=int(1e5),
         batch_size=100
     )
     params = ParamDict(
@@ -433,10 +456,10 @@ if __name__ == "__main__":
         env_name=env_name,
         state_dim=state_dim,
         action_dim=action_dim,
-        video_interval=int(2e3),
+        video_interval=int(1e4),
         log_interval=1,
         checkpoint_interval=int(1e5),
-        prefix="debuglow",
+        prefix="debug+std+maxstep",
         save_video=True,
         use_cuda=True,
         # checkpoint="hiro-antpush_checked-it(1100000)-[2020-06-28 14:58:22.307268].tar"
