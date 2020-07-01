@@ -194,7 +194,7 @@ def dense_reward_simple(state, target=Tensor([0, 19])):
 
 def done_judge_low(state, goal, next_state):
     # define low-level success: same as high-level success (L2 norm < 5, paper B.2.2)
-    l2_norm = torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
+    l2_norm = torch.pow(sum(torch.pow(state[:2] + goal[:2] - next_state[:2], 2)), 1 / 2)
     done = (l2_norm <= 1.4)
     return Tensor([done])
 
@@ -470,7 +470,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(1e5),
+        start_timestep=int(300),
         batch_size=100
     )
     params = ParamDict(
