@@ -173,17 +173,22 @@ def intrinsic_reward(state, goal, next_state):
     return -torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
 
 
-def dense_reward_simple(state, target=Tensor([0, 19])):
-    device = state.device
-    target = target.to(device)
-    l2_norm = torch.pow(sum(torch.pow(state[:2] - target, 2)), 1 / 2)
-    return -l2_norm
+def intrinsic_reward_simple(state, goal, next_state):
+    # low-level dense reward (L2 norm), provided by high-level policy
+    return -torch.pow(sum(torch.pow(state[:2] + goal[:2] - next_state[:2], 2)), 1 / 2)
 
 
 def dense_reward(state, target=Tensor([0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])):
     device = state.device
     target = target.to(device)
     l2_norm = torch.pow(sum(torch.pow(state - target, 2)), 1 / 2)
+    return -l2_norm
+
+
+def dense_reward_simple(state, target=Tensor([0, 19])):
+    device = state.device
+    target = target.to(device)
+    l2_norm = torch.pow(sum(torch.pow(state[:2] - target, 2)), 1 / 2)
     return -l2_norm
 
 
@@ -298,9 +303,6 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     return y.detach(), critic_loss.detach(), actor_loss
 
 
-
-
-
 def train(params):
     # 1. Initialization
     # 1.1 rl components
@@ -349,7 +351,7 @@ def train(params):
         done_h = success_judge(next_state, target_pos)
         next_state, action, reward_h, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward_h]), Tensor([done_h])
         # 2.2.3 collect low-level steps
-        intri_reward = intrinsic_reward(state, goal, next_state)
+        intri_reward = intrinsic_reward_simple(state, goal, next_state)
         done_l = done_judge_low(state, goal, next_state)
         next_goal = h_function(state, goal, next_state)
         experience_buffer_l.add(state, goal, action, intri_reward, next_state, next_goal, done_l)
@@ -476,7 +478,7 @@ if __name__ == "__main__":
         env_name=env_name,
         state_dim=state_dim,
         action_dim=action_dim,
-        video_interval=int(1e4),
+        video_interval=int(300),
         log_interval=1,
         checkpoint_interval=int(1e5),
         prefix="debug_simple",
