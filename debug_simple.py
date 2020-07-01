@@ -478,7 +478,7 @@ if __name__ == "__main__":
         env_name=env_name,
         state_dim=state_dim,
         action_dim=action_dim,
-        video_interval=int(300),
+        video_interval=int(1e4),
         log_interval=1,
         checkpoint_interval=int(1e5),
         prefix="debug_simple",
