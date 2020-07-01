@@ -470,7 +470,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(300),
+        start_timestep=int(1e5),
         batch_size=100
     )
     params = ParamDict(
