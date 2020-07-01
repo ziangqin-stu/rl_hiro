@@ -481,7 +481,7 @@ if __name__ == "__main__":
         video_interval=int(1e4),
         log_interval=1,
         checkpoint_interval=int(1e5),
-        prefix="debug_simple_origGoal",
+        prefix="debug_simple_simpleGoal_simpleIntriR",
         save_video=True,
         use_cuda=True,
         # checkpoint="hiro-antpush_debug+std+maxstep-it(300000)-[2020-06-30 05:47:00.697743].tar"
