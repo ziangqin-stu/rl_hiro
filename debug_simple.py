@@ -356,7 +356,6 @@ def train(params):
         next_goal = h_function(state, goal, next_state)
         experience_buffer_l.add(state, goal, action, intri_reward, next_state, next_goal, done_l)
         # 2.2.4 update low-level loop
-        state = next_state
         episode_reward_l += intri_reward
         episode_reward_h += reward_h
         episode_reward += reward_h
@@ -378,10 +377,11 @@ def train(params):
                 next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
             # 2.2.7 collect high-level steps
             goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, state_dim, goal_sequence[0], max_goal, device)
-            experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state_sequence[-1], done_h)
-            if state_print_trigger.good2log(t, 1000): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat, reward_h_sequence], location='training_state')
+            experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, next_state, done_h)
+            if state_print_trigger.good2log(t, 500): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat, reward_h_sequence], location='training_state')
         # 2.2.8 update high-level loop
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
+        state = next_state
         goal = next_goal
 
         # 2.2.9 update networks
@@ -470,7 +470,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(1e5),
+        start_timestep=int(300),
         batch_size=100
     )
     params = ParamDict(
@@ -481,7 +481,7 @@ if __name__ == "__main__":
         video_interval=int(1e4),
         log_interval=1,
         checkpoint_interval=int(1e5),
-        prefix="debug_simple",
+        prefix="debug_simple_origGoal",
         save_video=True,
         use_cuda=True,
         # checkpoint="hiro-antpush_debug+std+maxstep-it(300000)-[2020-06-30 05:47:00.697743].tar"
