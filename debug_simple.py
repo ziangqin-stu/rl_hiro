@@ -410,7 +410,7 @@ def train(params):
         # 2.2.10 logger record
         if t >= start_timestep and t % log_interval == 0: record_logger(args=[target_q_l, critic_loss_l, actor_loss_l, target_q_h, critic_loss_h, actor_loss_h], option='inter_loss', step=t-start_timestep)
         # 2.2.11 start new episode
-        if bool(done_h) or episode_timestep_h > episode_len:
+        if bool(done_h) or episode_timestep_h >= episode_len:
             # > record loggers
             if bool(done_h): success_number += 1
             episode_num_h += 1
