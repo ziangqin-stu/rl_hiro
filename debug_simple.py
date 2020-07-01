@@ -173,6 +173,20 @@ def intrinsic_reward(state, goal, next_state):
     return -torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
 
 
+def dense_reward_simple(state, target=Tensor([0, 19])):
+    device = state.device
+    target = target.to(device)
+    l2_norm = torch.pow(sum(torch.pow(state[:2] - target, 2)), 1 / 2)
+    return -l2_norm
+
+
+def dense_reward(state, target=Tensor([0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])):
+    device = state.device
+    target = target.to(device)
+    l2_norm = torch.pow(sum(torch.pow(state - target, 2)), 1 / 2)
+    return -l2_norm
+
+
 def done_judge_low(state, goal, next_state):
     # define low-level success: same as high-level success (L2 norm < 5, paper B.2.2)
     l2_norm = torch.pow(sum(torch.pow(state + goal - next_state, 2)), 1 / 2)
@@ -180,10 +194,9 @@ def done_judge_low(state, goal, next_state):
     return Tensor([done])
 
 
-def success_judge(state):
+def success_judge(state, target=Tensor([0, 19])):
     location = Tensor(state[:2])
-    goal_state = Tensor([0, 19])
-    l2_norm = torch.pow(sum(torch.pow(location + goal_state, 2)), 1 / 2)
+    l2_norm = torch.pow(sum(torch.pow(location + target, 2)), 1 / 2)
     done = (l2_norm <= 5.)
     return Tensor([done])
 
@@ -285,6 +298,9 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     return y.detach(), critic_loss.detach(), actor_loss
 
 
+
+
+
 def train(params):
     # 1. Initialization
     # 1.1 rl components
@@ -303,6 +319,7 @@ def train(params):
     policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
     c, episode_len, max_timestep, start_timestep, discount, batch_size, \
     log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger = initialize_params(params, device)
+    target_pos = Tensor([-10, 10])
     # 1.3 set seeds
     env.seed(policy_params.seed)
     torch.manual_seed(policy_params.seed)
@@ -316,7 +333,7 @@ def train(params):
     episode_reward_l, episode_reward_h, episode_reward, episode_num_l, episode_num_h, episode_timestep_l, episode_timestep_h, success_number = 0, 0, 0, 0, 0, 1, 1, 0
     state = Tensor(env.reset()).to(device)
     goal = torch.randn_like(state)
-    state_sequence, goal_sequence, action_sequence, intri_reward_sequence = [], [], [], []
+    state_sequence, goal_sequence, action_sequence, intri_reward_sequence, reward_h_sequence = [], [], [], [], []
     # 2.2 training loop
     for t in range(step, max_timestep):
         # 2.2.1 sample low-level action
@@ -327,8 +344,9 @@ def train(params):
             expl_noise_action = np.random.normal(loc=0, scale=expl_noise_std_l, size=action_dim).astype(np.float32)
             action = (actor_eval_l(state, goal).detach().cpu() + expl_noise_action).clamp(-max_action, max_action).squeeze()
         # 2.2.2 interact environment
-        next_state, reward_h, _, info = env.step(action)
-        done_h = success_judge(next_state)
+        next_state, _, _, info = env.step(action)
+        reward_h = dense_reward_simple(state, target=target_pos)
+        done_h = success_judge(next_state, target_pos)
         next_state, action, reward_h, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward_h]), Tensor([done_h])
         # 2.2.3 collect low-level steps
         intri_reward = intrinsic_reward(state, goal, next_state)
@@ -345,6 +363,7 @@ def train(params):
         action_sequence.append(action)
         intri_reward_sequence.append(intri_reward)
         goal_sequence.append(goal)
+        reward_h_sequence.append(reward_h)
         # 2.2.6 sample high-level goal & update next_goal
         if (t + 1) % c == 0 and t > 0:
             if t < start_timestep:
@@ -358,9 +377,9 @@ def train(params):
             # 2.2.7 collect high-level steps
             goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, state_dim, goal_sequence[0], max_goal, device)
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, state_sequence[-1], done_h)
-            if state_print_trigger.good2log(t, 1000): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat], location='training_state')
+            if state_print_trigger.good2log(t, 1000): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat, reward_h_sequence], location='training_state')
         # 2.2.8 update high-level loop
-            state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
+            state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
         goal = next_goal
 
         # 2.2.9 update networks
@@ -385,7 +404,7 @@ def train(params):
                 time_logger.sps(t)
                 time_logger.time_spent()
             # > clear loggers
-            state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
+            state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
             episode_reward_l, episode_timestep_l = 0, 0
             episode_reward_h = 0
             episode_num_l += 1
@@ -398,7 +417,7 @@ def train(params):
             print(f"    >>> Episode: Total T: {t + 1} Episode_H Num: {episode_num_h+1} Episode_H T: {episode_timestep_h} Reward_Episode: {float(episode_reward):.3f} Success_Rate: {float(success_number/(episode_num_h+1e-6))}\n")
             # > clear loggers
             episode_reward = 0
-            state_sequence, action_sequence, intri_reward_sequence, goal_sequence = [], [], [], []
+            state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
             episode_reward_l, episode_timestep_l, episode_num_l = 0, 0, 0
             state, done_h = Tensor(env.reset()).to(device), Tensor([False])
             episode_reward_h, episode_timestep_h = 0, 0
@@ -449,7 +468,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(300),
+        start_timestep=int(1e5),
         batch_size=100
     )
     params = ParamDict(
@@ -460,11 +479,11 @@ if __name__ == "__main__":
         video_interval=int(1e4),
         log_interval=1,
         checkpoint_interval=int(1e5),
-        prefix="debug+std+maxstep+video",
+        prefix="debug_simple",
         save_video=True,
         use_cuda=True,
-        checkpoint="hiro-antpush_debug+std+maxstep-it(300000)-[2020-06-30 05:47:00.697743].tar"
-        # checkpoint=None
+        # checkpoint="hiro-antpush_debug+std+maxstep-it(300000)-[2020-06-30 05:47:00.697743].tar"
+        checkpoint=None
     )
 
     wandb.init(project="ziang-hiro-new")

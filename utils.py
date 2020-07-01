@@ -8,6 +8,7 @@ import wandb
 import numpy as np
 import gym
 from environments.create_maze_env import create_maze_env
+from environments.maze_env import MazeEnv
 
 
 class ParamDict(dict):
@@ -220,7 +221,7 @@ def print_cmd_hint(params, location):
         print("==========================================================\n\n")
 
     elif location == "training_state":
-        state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat = params[:]
+        state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat, reward_h_sequence = params[:]
         print("        > state:")
         for i in range(len(state_sequence)):
             print("            {}".format(["%.4f" % elem for elem in state_sequence[i].tolist()]))
@@ -234,5 +235,9 @@ def print_cmd_hint(params, location):
             print("        > goal_hat: {}".format(goal_hat))
         else:
             print("        > goal_hat not updated")
+        print("        > reward_h:")
+        for i in range(len(reward_h_sequence)):
+            print("            {}".format(["%.4f" % elem for elem in reward_h_sequence[i].tolist()]))
+
 
 
