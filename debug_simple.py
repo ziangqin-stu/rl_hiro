@@ -182,7 +182,7 @@ def dense_reward(state, target=Tensor([0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     device = state.device
     target = target.to(device)
     l2_norm = torch.pow(sum(torch.pow(state - target, 2)), 1 / 2)
-    return -l2_norm
+    return -l2_no
 
 
 def dense_reward_simple(state, target=Tensor([0, 19])):
@@ -192,15 +192,16 @@ def dense_reward_simple(state, target=Tensor([0, 19])):
     return -l2_norm
 
 
-def done_judge_low(state, goal, next_state):
+def done_judge_low(goal):
     # define low-level success: same as high-level success (L2 norm < 5, paper B.2.2)
-    l2_norm = torch.pow(sum(torch.pow(state[:2] + goal[:2] - next_state[:2], 2)), 1 / 2)
+    l2_norm = torch.pow(sum(torch.pow(goal, 2)), 1 / 2)
+    # done = (l2_norm <= 5.)
     done = (l2_norm <= 1.4)
     return Tensor([done])
 
 
 def success_judge(state, target=Tensor([0, 19])):
-    location = Tensor(state[:2])
+    location = state[:2]
     l2_norm = torch.pow(sum(torch.pow(location + target, 2)), 1 / 2)
     done = (l2_norm <= 5.)
     return Tensor([done])
@@ -321,7 +322,7 @@ def train(params):
     policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
     c, episode_len, max_timestep, start_timestep, discount, batch_size, \
     log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger = initialize_params(params, device)
-    target_pos = Tensor([-10, 10])
+    target_pos = Tensor([-10, 10]).to(device)
     # 1.3 set seeds
     env.seed(policy_params.seed)
     torch.manual_seed(policy_params.seed)
@@ -347,25 +348,26 @@ def train(params):
             action = (actor_eval_l(state, goal).detach().cpu() + expl_noise_action).clamp(-max_action, max_action).squeeze()
         # 2.2.2 interact environment
         next_state, _, _, info = env.step(action)
+        # 2.2.3 compute step arguments
         reward_h = dense_reward_simple(state, target=target_pos)
-        done_h = success_judge(next_state, target_pos)
+        done_h = success_judge(state, target_pos)
         next_state, action, reward_h, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward_h]), Tensor([done_h])
-        # 2.2.3 collect low-level steps
         intri_reward = intrinsic_reward_simple(state, goal, next_state)
-        done_l = done_judge_low(state, goal, next_state)
         next_goal = h_function(state, goal, next_state)
+        done_l = done_judge_low(goal)
+        # 2.2.4 collect low-level steps
         experience_buffer_l.add(state, goal, action, intri_reward, next_state, next_goal, done_l)
-        # 2.2.4 update low-level loop
-        episode_reward_l += intri_reward
-        episode_reward_h += reward_h
-        episode_reward += reward_h
-        # 2.2.5 record low-level experience sequence
+        # 2.2.5 record low-level segment sequence
         state_sequence.append(state)
         action_sequence.append(action)
         intri_reward_sequence.append(intri_reward)
         goal_sequence.append(goal)
         reward_h_sequence.append(reward_h)
-        # 2.2.6 sample high-level goal & update next_goal
+        # 2.2.4 update low-level segment reward
+        episode_reward_l += intri_reward
+        episode_reward_h += reward_h
+        episode_reward += reward_h
+        # 2.2.6 sample goal
         if (t + 1) % c == 0 and t > 0:
             if t < start_timestep:
                 next_goal = (torch.randn_like(state) * max_goal)
@@ -373,14 +375,25 @@ def train(params):
             else:
                 # expl_noise_goal = np.random.normal(loc=0, scale=max_goal.cpu() * expl_noise_std_h, size=state_dim).astype(np.float32)
                 expl_noise_goal = np.random.normal(loc=0, scale=expl_noise_std_h, size=state_dim).astype(np.float32)
-                next_goal = (actor_eval_h(state_sequence[-1].to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
+                next_goal = (actor_eval_h(next_state.to(device)).detach().cpu() + expl_noise_goal).squeeze().to(device)
                 next_goal = torch.min(torch.max(next_goal, -max_goal), max_goal)
             # 2.2.7 collect high-level steps
             goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, state_dim, goal_sequence[0], max_goal, device)
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, next_state, done_h)
             if state_print_trigger.good2log(t, 500): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat, reward_h_sequence], location='training_state')
-        # 2.2.8 update high-level loop
+            # 2.2.8 clear low-level segment memories
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
+            # 2.2.8 record -> clear loggers
+            print(f"    > Segment: Total T: {t + 1} Episode_L Num: {episode_num_l + 1} Episode_L T: {episode_timestep_l} Reward_L: {float(episode_reward_l):.3f} Reward_H: {float(episode_reward_h):.3f}")
+            if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t - start_timestep)
+            if save_video and video_log_trigger.good2log(t, video_interval):
+                log_video_hrl(env_name, actor_target_l, actor_target_h, params)
+                time_logger.sps(t)
+                time_logger.time_spent()
+            episode_reward_l, episode_timestep_l = 0, 0
+            episode_reward_h = 0
+            episode_num_l += 1
+        # update low-level segment state arguments
         state = next_state
         goal = next_goal
 
@@ -391,25 +404,12 @@ def train(params):
                 step_update_l(experience_buffer_l, batch_size, total_it, actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, critic_optimizer_l, actor_optimizer_l, params)
         # 2.2.9.2 high-level update
         target_q_h, critic_loss_h, actor_loss_h = None, None, None
-        if t >= start_timestep and t % c == 0:
+        if t >= start_timestep and (t + 1) % c == 0:
             target_q_h, critic_loss_h, actor_loss_h = \
                 step_update_h(experience_buffer_h, batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
         # 2.2.10 logger record
         if t >= start_timestep and t % log_interval == 0: record_logger(args=[target_q_l, critic_loss_l, actor_loss_l, target_q_h, critic_loss_h, actor_loss_h], option='inter_loss', step=t-start_timestep)
         # 2.2.11 start new episode
-        if episode_timestep_l >= c:
-            # > record loggers
-            print(f"    > Segment: Total T: {t + 1} Episode_L Num: {episode_num_l + 1} Episode_L T: {episode_timestep_l} Reward_L: {float(episode_reward_l):.3f} Reward_H: {float(episode_reward_h):.3f}")
-            if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t-start_timestep)
-            if save_video and video_log_trigger.good2log(t, video_interval):
-                log_video_hrl(env_name, actor_target_l, actor_target_h, params)
-                time_logger.sps(t)
-                time_logger.time_spent()
-            # > clear loggers
-            state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
-            episode_reward_l, episode_timestep_l = 0, 0
-            episode_reward_h = 0
-            episode_num_l += 1
         if bool(done_h) or episode_timestep_h > episode_len:
             # > record loggers
             if bool(done_h): success_number += 1
@@ -426,13 +426,14 @@ def train(params):
         # 2.2.12 update training loop
         episode_timestep_l += 1
         episode_timestep_h += 1
+        # 2.2.12 save checkpoints
         if checkpoint_logger.good2log(t, checkpoint_interval):
             logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger]
             save_checkpoint(t,
                             actor_eval_l, critic_eval_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
                             actor_eval_h, critic_eval_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
                             logger, params)
-    # 2.3 log training run result
+    # 2.3 log training result videos
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
     print_cmd_hint(params=params, location='end_train')
@@ -479,9 +480,9 @@ if __name__ == "__main__":
         state_dim=state_dim,
         action_dim=action_dim,
         video_interval=int(1e4),
-        log_interval=1,
+        log_interval=2,
         checkpoint_interval=int(1e5),
-        prefix="debug_simple_simpleGoal_simpleIntriR",
+        prefix="test_simple_simpleGoal_simpleIntriR_posR",
         save_video=True,
         use_cuda=True,
         # checkpoint="hiro-antpush_debug+std+maxstep-it(300000)-[2020-06-30 05:47:00.697743].tar"
