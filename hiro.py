@@ -471,8 +471,8 @@ if __name__ == "__main__":
         prefix="test_simple_origGoal_fixedIntriR_posER",
         save_video=True,
         use_cuda=True,
-        # checkpoint="hiro-antpush_test_simple_simpleGoal_simpleIntriR_posR-it(500000)-[2020-07-01 18:51:29.489023].tar"
-        checkpoint=None
+        checkpoint="hiro-antfall_test_simple_origGoal_fixedIntriR_posER-it(600000)-[2020-07-02 09:45:05.843937].tar"
+        # checkpoint=None
     )
 
     wandb.init(project="ziang-hiro-new")

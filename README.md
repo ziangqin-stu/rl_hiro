@@ -45,7 +45,7 @@ The original paper does not provide algorithm graph, we can write our own here:
 
 ​		Initialize critic networks $Q_{\theta_1^{low}}$, $Q_{\theta_2^{low}}$, $Q_{\theta_2^{high}}$, $Q_{\theta_2^{high}}$ and actor networks $\mu_{\phi_1^{low}}$, $\mu_{\phi_2^{low}}$, $\mu_{\phi_1^{high}}$, $\mu_{\phi_1^{high}}$ with random $\theta s$ and $\phi s$ 
 
-​		Initialize target networks $\theta_1^{'low} \leftarrow \theta_1{low}$,  $\theta_2^{'low} \leftarrow \theta_2{low}$,  $\theta_1^{'high} \leftarrow \theta_1^{high}$,  $\theta_2^{'high} \leftarrow \theta_2{high}$, $\phi_1^{'low} \leftarrow \phi_1{low}$, $\ldots$
+​		Initialize target networks $\theta_1^{'low} \leftarrow \theta_1^{low}$,  $\theta_2^{'low} \leftarrow \theta_2^{low}$,  $\theta_1^{'high} \leftarrow \theta_1^{high}$,  $\theta_2^{'high} \leftarrow \theta_2{high}$, $\phi_1^{'low} \leftarrow \phi_1^{low}$, $\ldots$
 
 ​		Initialize replay buffer $\Beta^{low}$, $\Beta^{high}$
 
@@ -110,6 +110,11 @@ The code structure of this implementation is much simpler compared with original
 * networks.py: holds NNs used in training process.
 * utils.py: holds util classes, functions and frequently used data.
 
+**Hint:**
+
+* uses only positional parameter to form goal
+* uses delayed parameter update interval to be 1
+
 ## How to Use This Repo
 
 ### requirements
@@ -164,6 +169,10 @@ This experiment runs on CPU, the final results should be like this:
 ## Experiment Results
 
 ### Ant Push
+
+walk, straight, bypass, success
+
+not a local minimum
 
 ### Ant Fall 
 
