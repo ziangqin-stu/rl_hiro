@@ -322,6 +322,7 @@ def train(params):
     policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
     c, episode_len, max_timestep, start_timestep, discount, batch_size, \
     log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger = initialize_params(params, device)
+    target_q_h, critic_loss_h, actor_loss_h = None, None, None
     target_pos = Tensor([0, 19]).to(device)
     # 1.3 set seeds
     env.seed(policy_params.seed)
@@ -403,7 +404,6 @@ def train(params):
             target_q_l, critic_loss_l, actor_loss_l = \
                 step_update_l(experience_buffer_l, batch_size, total_it, actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, critic_optimizer_l, actor_optimizer_l, params)
         # 2.2.9.2 high-level update
-        target_q_h, critic_loss_h, actor_loss_h = None, None, None
         if t >= start_timestep and (t + 1) % c == 0:
             target_q_h, critic_loss_h, actor_loss_h = \
                 step_update_h(experience_buffer_h, batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
@@ -480,7 +480,7 @@ if __name__ == "__main__":
         state_dim=state_dim,
         action_dim=action_dim,
         video_interval=int(1e4),
-        log_interval=1,
+        log_interval=5,
         checkpoint_interval=int(1e5),
         prefix="test_simple_fullGoal_fullIntriR_posR",
         save_video=True,
