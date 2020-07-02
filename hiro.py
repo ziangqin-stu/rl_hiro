@@ -180,10 +180,10 @@ def dense_reward(state, target=Tensor([0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     return -l2_norm
 
 
-def dense_reward_simple(state, target=Tensor([0, 19])):
+def dense_reward_simple(state, goal_dim, target=Tensor([0, 19])):
     device = state.device
     target = target.to(device)
-    l2_norm = torch.pow(sum(torch.pow(state[:2] - target, 2)), 1 / 2)
+    l2_norm = torch.pow(sum(torch.pow(state[:goal_dim] - target, 2)), 1 / 2)
     return -l2_norm
 
 
@@ -345,7 +345,7 @@ def train(params):
         # 2.2.2 interact environment
         next_state, _, _, info = env.step(action)
         # 2.2.3 compute step arguments
-        reward_h = dense_reward_simple(state, target=target_pos)
+        reward_h = dense_reward_simple(state, goal_dim, target=target_pos)
         done_h = success_judge(state, target_pos)
         next_state, action, reward_h, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward_h]), Tensor([done_h])
         intri_reward = intrinsic_reward(state, goal, next_state, goal_dim)
