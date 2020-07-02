@@ -182,7 +182,7 @@ def dense_reward(state, target=Tensor([0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     device = state.device
     target = target.to(device)
     l2_norm = torch.pow(sum(torch.pow(state - target, 2)), 1 / 2)
-    return -l2_no
+    return -l2_norm
 
 
 def dense_reward_simple(state, target=Tensor([0, 19])):
@@ -195,8 +195,8 @@ def dense_reward_simple(state, target=Tensor([0, 19])):
 def done_judge_low(goal):
     # define low-level success: same as high-level success (L2 norm < 5, paper B.2.2)
     l2_norm = torch.pow(sum(torch.pow(goal, 2)), 1 / 2)
-    # done = (l2_norm <= 5.)
-    done = (l2_norm <= 1.4)
+    done = (l2_norm <= 5.)
+    # done = (l2_norm <= 1.4)
     return Tensor([done])
 
 
@@ -322,7 +322,7 @@ def train(params):
     policy_params, env_name, state_dim, max_goal, action_dim, max_action, expl_noise_std_l, expl_noise_std_h,\
     c, episode_len, max_timestep, start_timestep, discount, batch_size, \
     log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger = initialize_params(params, device)
-    target_pos = Tensor([-10, 10]).to(device)
+    target_pos = Tensor([0, 19]).to(device)
     # 1.3 set seeds
     env.seed(policy_params.seed)
     torch.manual_seed(policy_params.seed)
@@ -352,7 +352,7 @@ def train(params):
         reward_h = dense_reward_simple(state, target=target_pos)
         done_h = success_judge(state, target_pos)
         next_state, action, reward_h, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward_h]), Tensor([done_h])
-        intri_reward = intrinsic_reward_simple(state, goal, next_state)
+        intri_reward = intrinsic_reward(state, goal, next_state)
         next_goal = h_function(state, goal, next_state)
         done_l = done_judge_low(goal)
         # 2.2.4 collect low-level steps
@@ -471,7 +471,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(1e5),
+        start_timestep=int(300),
         batch_size=100
     )
     params = ParamDict(
@@ -480,9 +480,9 @@ if __name__ == "__main__":
         state_dim=state_dim,
         action_dim=action_dim,
         video_interval=int(1e4),
-        log_interval=2,
+        log_interval=1,
         checkpoint_interval=int(1e5),
-        prefix="test_simple_simpleGoal_simpleIntriR_posR",
+        prefix="test_simple_fullGoal_fullIntriR_posR",
         save_video=True,
         use_cuda=True,
         # checkpoint="hiro-antpush_debug+std+maxstep-it(300000)-[2020-06-30 05:47:00.697743].tar"
