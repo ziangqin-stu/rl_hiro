@@ -57,11 +57,11 @@ class CriticTD3(nn.Module):
 
 
 class ActorLow(nn.Module):
-    def __init__(self, state_dim, action_dim, max_action):
+    def __init__(self, state_dim, goal_dim, action_dim, max_action):
         super(ActorLow, self).__init__()
         self.fc = nn.Sequential(
             # (state, goal) -> action
-            nn.Linear(state_dim * 2, 300),
+            nn.Linear(state_dim + goal_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
@@ -86,12 +86,12 @@ class ActorLow(nn.Module):
 
 
 class CriticLow(nn.Module):
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, goal_dim, action_dim):
         super(CriticLow, self).__init__()
         # double Q networks
         self.fc1 = nn.Sequential(
             # (state, goal, action) -> q_l1
-            nn.Linear(state_dim * 2 + action_dim, 300),
+            nn.Linear(state_dim + goal_dim + action_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
@@ -99,7 +99,7 @@ class CriticLow(nn.Module):
         )
         self.fc2 = nn.Sequential(
             # (state, goal, action) -> q_l2
-            nn.Linear(state_dim * 2 + action_dim, 300),
+            nn.Linear(state_dim + goal_dim + action_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
@@ -137,7 +137,7 @@ class CriticLow(nn.Module):
 
 
 class ActorHigh(nn.Module):
-    def __init__(self, state_dim, max_goal, device):
+    def __init__(self, state_dim, goal_dim, max_goal, device):
         super(ActorHigh, self).__init__()
         self.fc = nn.Sequential(
             # (state, goal) -> goal'
@@ -145,7 +145,7 @@ class ActorHigh(nn.Module):
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
-            nn.Linear(300, state_dim),
+            nn.Linear(300, goal_dim),
             nn.Tanh()
         )
         self.max_goal = torch.Tensor(max_goal).to(device)
@@ -162,11 +162,11 @@ class ActorHigh(nn.Module):
 
 
 class CriticHigh(nn.Module):
-    def __init__(self, state_dim):
+    def __init__(self, state_dim, goal_dim):
         super(CriticHigh, self).__init__()
         self.fc1 = nn.Sequential(
             # (state, goal') -> q_h1
-            nn.Linear(state_dim * 2, 300),
+            nn.Linear(state_dim + goal_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),
@@ -174,7 +174,7 @@ class CriticHigh(nn.Module):
         )
         self.fc2 = nn.Sequential(
             # (state, goal, goal') -> q_h2
-            nn.Linear(state_dim * 2, 300),
+            nn.Linear(state_dim + goal_dim, 300),
             nn.ReLU(),
             nn.Linear(300, 300),
             nn.ReLU(),

@@ -114,6 +114,8 @@ The code structure of this implementation is much simpler compared with original
 
 ### requirements
 
+Please make sure you have following software correctly installed before using this code base: 
+
 * PyTorch
 * OpenAI Gym (Mujoco)
 * Weights & Biases
@@ -134,17 +136,20 @@ go to */impl_data-effiient-hrl*, install required packages:
 
 Set your wandb, modify *./test/td3.py* line 162 to your project name.
 
-In terminal, go to *./test/*, type command to run a simple TD3 training process to test success of deploy:
+In terminal, go to project root path, type command to run a simple TD3 training process to test success of deploy:
 
+```python
+python run.py --algorithm=td3 --param_id=1
 ```
-python td3.py
-```
 
-This test training is on CPU, will last for about 2-3 hours. The final results will be like: 
+This experiment runs on CPU, the final results should be like this: 
 
-<img src=".\save\image\td3-idp-reward.PNG" alt="td3-idp-reward" style="zoom: 20%;" />
-
-<video src=".\save\video\td3-idp.mp4"></video>
+<div style="display:flex;">
+    <div style="display:flex; margin:auto;">
+        <img src=".\readme_data\td3-idp-reward.png" alt="td3-idp-reward" width="600" style="padding: 5px;"/>
+        <img src=".\readme_data\td3-idp-video.gif" alt="td3-idp-reward" width="300" style="padding: 5px;"/>
+    </div>       
+</div>
 
 ### Play Code
 

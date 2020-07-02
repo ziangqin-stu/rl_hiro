@@ -58,19 +58,20 @@ class ExperienceBufferLow:
         - assume state, action is not one-dimension
         - hold cpu data in memory, transform when output
     """
-    def __init__(self, capacity, state_dim, action_dim, use_cuda):
+    def __init__(self, capacity, state_dim, goal_dim, action_dim, use_cuda):
         # initialize
         self.capacity = capacity
         self.state_dim = state_dim
+        self.goal_dim = goal_dim
         self.action_dim = action_dim
         self.offset = 0
         # create experience buffer
         self.state = torch.zeros(capacity, state_dim)
-        self.goal = torch.zeros(capacity, state_dim)
+        self.goal = torch.zeros(capacity, goal_dim)
         self.action = torch.zeros(capacity, action_dim)
         self.reward = torch.zeros(capacity, 1)
         self.next_state = torch.zeros(capacity, state_dim)
-        self.next_goal = torch.zeros(capacity, state_dim)
+        self.next_goal = torch.zeros(capacity, goal_dim)
         self.done = torch.zeros(capacity, 1)
         # probe device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if use_cuda else "cpu"
@@ -106,14 +107,15 @@ class ExperienceBufferHigh:
     DevNotes:
         - hold cpu data in memory, transform when output
     """
-    def __init__(self, capacity, state_dim, use_cuda):
+    def __init__(self, capacity, state_dim, goal_dim, use_cuda):
         # initialize
         self.capacity = capacity
         self.state_dim = state_dim
+        self.goal_dim = goal_dim
         self.offset = 0
         # create experience buffer
         self.state_start = torch.zeros(capacity, state_dim)
-        self.goal_start = torch.zeros(capacity, state_dim)
+        self.goal_start = torch.zeros(capacity, goal_dim)
         self.reward = torch.zeros(capacity, 1)
         self.state_end = torch.zeros(capacity, state_dim)
         self.done = torch.zeros(capacity, 1)

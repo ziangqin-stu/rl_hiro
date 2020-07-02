@@ -107,6 +107,7 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
     actor_high = copy.deepcopy(actor_high).cpu()
     actor_high.max_goal = actor_high.max_goal.to('cpu')
     policy_params = params.policy_params
+    goal_dim = params.goal_dim
     if env_name in envnames_mujoco:
         env = gym.make(env_name)
     elif env_name in envnames_ant:
@@ -115,7 +116,7 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
     done = False
     step = 1
     state = torch.Tensor(env.reset())
-    goal = torch.Tensor(torch.randn_like(state))
+    goal = torch.Tensor(torch.randn(goal_dim))
     episode_reward, frame_buffer = 0, []
     while not done and step < 600:
         frame_buffer.append(env.render(mode='rgb_array'))
@@ -124,7 +125,7 @@ def log_video_hrl(env_name, actor_low, actor_high, params):
         if (step + 1) % policy_params.c == 0 and step > 0:
             goal = actor_high(state)
         else:
-            goal = (torch.Tensor(state) + goal - torch.Tensor(next_state)).float()
+            goal = (torch.Tensor(state)[:goal_dim] + goal - torch.Tensor(next_state)[:goal_dim]).float()
         state = next_state
         episode_reward += reward
         step += 1

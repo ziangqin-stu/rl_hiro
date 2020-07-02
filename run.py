@@ -6,7 +6,10 @@ import csv
 
 import copy
 
-from train import train
+import codecs
+
+import hiro
+from test import td3
 from utils import ParamDict, get_env
 
 # =============================
@@ -15,8 +18,8 @@ from utils import ParamDict, get_env
 parser = argparse.ArgumentParser(description="Specific Hyper-Parameters for PPO training. ")
 # >> experiment parameters
 parser.add_argument('--param_id', default=0, type=int, help='index of parameter that will be loaded from local csv file for this run')
-parser.add_argument('--algorithm', default="hiro", help='select experiment algorithm: hiro or td3')
-parser.add_argument('--env_name', default="AntPush", help='environment name for this run, choose from AntPush, AntFall, AntMaze')
+parser.add_argument('--algorithm', default=None, help='select experiment algorithm: hiro or td3')
+parser.add_argument('--env_name', default=None, help='environment name for this run, choose from AntPush, AntFall, AntMaze')
 parser.add_argument('--state_dim', default=30, type=int, help='environment observation state dimension')
 parser.add_argument('--action_dim', default=8, type=int, help='agent action dimension')
 parser.add_argument('--save_video', help='whether sample and log episode video intermittently during training')
@@ -108,12 +111,15 @@ def bool_params_preprocess(file_param):
 def load_params(index):
     # load $ package training arguments
     if args.algorithm == 'td3':
-        f = open('./train_param_td3.csv', 'r')
+        f = open('./train_param_td3.csv', 'r', encoding='utf-8')
+        # f = open('./train_param.csv', 'r', encoding='utf-8')
+        # f = open('./train_param_copy.csv', 'r', encoding='utf-8')
+        # f = codecs.open('./train_param_td3.csv', 'r', encoding='utf-8', errors='ignore')
         with f:
             # read parameters from file
             reader = csv.DictReader(f)
             rows = [row for row in reader]
-            file_param = rows[index]
+            file_param = rows[index - 1]
             bool_args_preprocess(args)
             bool_params_preprocess(file_param)
             # load environment info
@@ -214,13 +220,18 @@ def cmd_run(params):
     training_param = copy.deepcopy(params)
     del training_param['policy_params']
     print("=========================================================")
-    print("Start Training {}: env={}, #update={}".format(args.algorithm.upper(), params.env_name, params.iter_num))
+    print("Start Training {}: env={}, #update={}".format(args.algorithm.upper(), params.env_name, params.policy_params.max_timestep))
     print("    -------------------------------------------------")
     print("    Training-Params: {}".format(training_param))
     print("    -------------------------------------------------")
     print("    Policy-Params: {}".format(params.policy_params))
     print("=========================================================")
-    train(params)
+    if args.algorithm == 'td3':
+        td3.train(params)
+    elif args.algorithm == 'hiro':
+        hiro.train(params)
+    else:
+        raise ValueError("algorithm name should be either 'hiro' or 'td3'!")
     print(">=================================<")
     print("Training Finished!: alg=PPO, env={}, #update={}".format(params.env_name, params.iter_num))
     print(">=================================<")

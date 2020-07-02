@@ -1,0 +1,6 @@
+torch==1.4.0
+PyVirtualDisplay==0.2.5
+mujoco_py==2.0.2.10
+gym==0.17.2
+numpy==1.18.4
+Pillow==7.2.0
