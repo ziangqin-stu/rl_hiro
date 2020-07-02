@@ -381,7 +381,7 @@ def train(params):
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
             # 2.2.8 record -> clear loggers
             print(f"    > Segment: Total T: {t + 1} Episode_L Num: {episode_num_l + 1} Episode_L T: {episode_timestep_l} Reward_L: {float(episode_reward_l):.3f} Reward_H: {float(episode_reward_h):.3f}")
-            if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t - start_timestep)
+            if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t-start_timestep)
             if save_video and video_log_trigger.good2log(t, video_interval):
                 log_video_hrl(env_name, actor_target_l, actor_target_h, params)
                 time_logger.sps(t)
@@ -463,7 +463,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(300),
+        start_timestep=int(1e5),
         batch_size=100
     )
     params = ParamDict(
