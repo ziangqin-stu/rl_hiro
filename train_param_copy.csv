@@ -1,7 +1,0 @@
-env_name,prefix,save_path,use_pretrain,pretrain_file,checkpoint_iter,save_checkpoint,parallel,log_video,plotting_iters,iter_num,seed,decay_entro_loss,learning_rate,hidden_dim,envs_num,horizon,batch_size,epochs_num,critic_coef,entropy_coef,clip_param,discount,lambd
-CartPole-v1,demo_cartpole,./save,FALSE,_,100,TRUE,TRUE,TRUE,20,600,1024,FALSE,1.00E-05,512,20,500,64,10,0.5,0.01,0.2,0.99,0.95
-MiniGrid-Empty-5x5-v0,demo_minigrid-empty5,./save,FALSE,_,100,TRUE,TRUE,TRUE,20,200,1024,TRUE,1.00E-05,512,50,15,64,10,0.5,0.01,0.2,0.99,0.95
-MiniGrid-Empty-16x16-v0,demo_test_minigrid-empty16,./save,FALSE,_,100,TRUE,TRUE,TRUE,20,400,123,TRUE,1.00E-05,512,50,200,64,30,0.5,0.1,0.2,0.99,0.95
-InvertedPendulum-v2,demo_invertedpendulum,./save,FALSE,_,100,TRUE,TRUE,TRUE,20,200,123,FALSE,1.00E-04,512,50,200,64,30,0.5,0,0.2,0.99,0.95
-Hopper-v2,demo_Hopper,./save,FALSE,_,100,TRUE,TRUE,TRUE,20,2000,123,FALSE,1.00E-05,512,50,1000,64,200,0.5,0.01,0.2,0.99,0.95
-Humanoid-v2,demo_Humanoid,./save,FALSE,_,100,TRUE,TRUE,TRUE,20,5000,1024,FALSE,1.00E-05,1024,50,1000,64,200,0.5,0.01,0.2,0.99,0.95

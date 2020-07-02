@@ -17,11 +17,12 @@ from utils import ParamDict, get_env
 # =============================
 parser = argparse.ArgumentParser(description="Specific Hyper-Parameters for PPO training. ")
 # >> experiment parameters
-parser.add_argument('--param_id', default=0, type=int, help='index of parameter that will be loaded from local csv file for this run')
+parser.add_argument('--param_id', default=1, type=int, help='index of parameter that will be loaded from local csv file for this run')
 parser.add_argument('--algorithm', default=None, help='select experiment algorithm: hiro or td3')
 parser.add_argument('--env_name', default=None, help='environment name for this run, choose from AntPush, AntFall, AntMaze')
-parser.add_argument('--state_dim', default=30, type=int, help='environment observation state dimension')
-parser.add_argument('--action_dim', default=8, type=int, help='agent action dimension')
+parser.add_argument('--state_dim', default=None, type=int, help='environment observation state dimension')
+parser.add_argument('--action_dim', default=None, type=int, help='agent action dimension')
+parser.add_argument('--goal_dim', default=None, type=int, help='environment goal dimension')
 parser.add_argument('--save_video', help='whether sample and log episode video intermittently during training')
 parser.add_argument('--video_interval', default=int(2e4), type=int, help='the interval of logging video')
 parser.add_argument('--checkpoint_interval', default=int(1e5), type=int, help='the interval of log checkpoint')
@@ -53,8 +54,8 @@ parser.add_argument('--expl_noise_std_h', default=1., type=float, help='low-leve
 parser.add_argument('--expl_noise_std_scale', default=0.1, type=float, help='exploration noise standard derivation scale')
 parser.add_argument('--lr_td3', default=0.1, type=float, help='td3 learning rate')
 parser.add_argument('--max_action_td3', default=1, type=float, help='td3 action boundary')
-parser.add_argument('--state_dim_td3', default=11, type=int, help='td3 learning rate')
-parser.add_argument('--action_dim_td3', default=1, type=int, help='td3 learning rate')
+parser.add_argument('--state_dim_td3', default=None, type=int, help='td3 learning rate')
+parser.add_argument('--action_dim_td3', default=None, type=int, help='td3 learning rate')
 # >> parse arguments
 args = parser.parse_args()
 
@@ -112,9 +113,6 @@ def load_params(index):
     # load $ package training arguments
     if args.algorithm == 'td3':
         f = open('./train_param_td3.csv', 'r', encoding='utf-8')
-        # f = open('./train_param.csv', 'r', encoding='utf-8')
-        # f = open('./train_param_copy.csv', 'r', encoding='utf-8')
-        # f = codecs.open('./train_param_td3.csv', 'r', encoding='utf-8', errors='ignore')
         with f:
             # read parameters from file
             reader = csv.DictReader(f)
@@ -155,10 +153,7 @@ def load_params(index):
             )
     elif args.algorithm == 'hiro':
         f = open('./train_param_hiro.csv', 'r')
-        env_name = "AntPush"
-        env = get_env(env_name)
-        state_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.shape[0]
+
         with f:
             # read parameters from file
             reader = csv.DictReader(f)
@@ -170,6 +165,7 @@ def load_params(index):
             env_name = args.env_name if args.env_name is not None else file_param['env_name']
             env = get_env(env_name)
             state_dim = env.observation_space.shape[0]
+            goal_dim = 3
             action_dim = env.action_space.shape[0]
             # build parameter container
             policy_params = ParamDict(
@@ -199,6 +195,7 @@ def load_params(index):
                 env_name=env_name,
                 state_dim=args.state_dim if args.state_dim is not None else int(file_param['state_dim']) if file_param['state_dim'] is not None else state_dim,
                 action_dim=args.action_dim if args.action_dim is not None else int(file_param['action_dim']) if file_param['action_dim'] is not None else action_dim,
+                goal_dim=args.goal_dim if args.goal_dim is not None else int(file_param['goal_dim']) if file_param['goal_dim'] is not None else goal_dim,
                 video_interval=args.video_interval if args.video_interval is not None else int(file_param['video_interval']),
                 log_interval=args.log_interval if args.log_interval is not None else int(file_param['log_interval']),
                 checkpoint_interval=args.checkpoint_interval if args.checkpoint_interval is not None else int(file_param['checkpoint_interval']),
@@ -208,7 +205,7 @@ def load_params(index):
                 checkpoint=args.checkpoint if args.checkpoint is not None else file_param['checkpoint']
             )
     else:
-        raise ValueError("value of algorithm argument is either 'hiro' or 'td3'.")
+        raise ValueError("algorithm name should be either 'hiro' or 'td3'!")
     return params, policy_params
 
 

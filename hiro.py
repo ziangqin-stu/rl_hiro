@@ -170,17 +170,10 @@ def h_function(state, goal, next_state, goal_dim):
 
 def intrinsic_reward(state, goal, next_state, goal_dim):
     # low-level dense reward (L2 norm), provided by high-level policy
-    return -torch.pow(sum(torch.pow(state[:goal_dim] + goal - next_state[:3], 2)), 1 / 2)
+    return -torch.pow(sum(torch.pow(state[:goal_dim] + goal - next_state[:goal_dim], 2)), 1 / 2)
 
 
-def dense_reward(state, target=Tensor([0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])):
-    device = state.device
-    target = target.to(device)
-    l2_norm = torch.pow(sum(torch.pow(state - target, 2)), 1 / 2)
-    return -l2_norm
-
-
-def dense_reward_simple(state, goal_dim, target=Tensor([0, 19])):
+def dense_reward(state, goal_dim, target=Tensor([0, 19])):
     device = state.device
     target = target.to(device)
     l2_norm = torch.pow(sum(torch.pow(state[:goal_dim] - target, 2)), 1 / 2)
@@ -195,8 +188,8 @@ def done_judge_low(goal):
     return Tensor([done])
 
 
-def success_judge(state, target=Tensor([0, 19])):
-    location = state[:3]
+def success_judge(state, goal_dim, target=Tensor([0, 19])):
+    location = state[:goal_dim]
     l2_norm = torch.pow(sum(torch.pow(location - target, 2)), 1 / 2)
     done = (l2_norm <= 5.)
     return Tensor([done])
@@ -345,8 +338,8 @@ def train(params):
         # 2.2.2 interact environment
         next_state, _, _, info = env.step(action)
         # 2.2.3 compute step arguments
-        reward_h = dense_reward_simple(state, goal_dim, target=target_pos)
-        done_h = success_judge(state, target_pos)
+        reward_h = dense_reward(state, goal_dim, target=target_pos)
+        done_h = success_judge(state, goal_dim, target_pos)
         next_state, action, reward_h, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward_h]), Tensor([done_h])
         intri_reward = intrinsic_reward(state, goal, next_state, goal_dim)
         next_goal = h_function(state, goal, next_state, goal_dim)

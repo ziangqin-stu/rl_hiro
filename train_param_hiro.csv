@@ -1,2 +1,2 @@
-param_id,env_name,state_dim,action_dim,save_video,video_interval,checkpoint_interval,log_interval,checkpoint,prefix,use_cuda,seed,max_timestep,start_timestep,batch_size,max_action,c,policy_freq,discount,actor_lr,critic_lr,tau,reward_scal_l,reward_scal_h,policy_noise_scale,policy_noise_std,policy_noise_clip,expl_noise_std_l,expl_noise_std_h
-1,AntPush,30,8,TRUE,2.00E+04,1.00E+05,1,None,test,TRUE,4321,3.00E+07,3.00E+04,100,30,10,1,0.99,1.00E-04,1.00E-03,5.00E-03,1,0.1,0.2,1,0.5,1,1
+param_id,env_name,state_dim,goal_dim,action_dim,save_video,video_interval,checkpoint_interval,log_interval,checkpoint,prefix,use_cuda,seed,max_timestep,start_timestep,batch_size,max_action,c,policy_freq,discount,actor_lr,critic_lr,tau,reward_scal_l,reward_scal_h,policy_noise_scale,policy_noise_std,policy_noise_clip,expl_noise_std_l,expl_noise_std_h
+1,AntPush,30,3,8,TRUE,2.00E+04,1.00E+05,1,None,test,TRUE,4321,3.00E+07,3.00E+04,100,30,10,1,0.99,1.00E-04,1.00E-03,5.00E-03,1,0.1,0.2,1,0.5,1,1

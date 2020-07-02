@@ -178,17 +178,10 @@ def intrinsic_reward_simple(state, goal, next_state, goal_dim):
     return -torch.pow(sum(torch.pow(state[:goal_dim] + goal - next_state[:3], 2)), 1 / 2)
 
 
-def dense_reward(state, target=Tensor([0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])):
+def dense_reward(state, goal_dim, target=Tensor([0, 19, 0.5])):
     device = state.device
     target = target.to(device)
-    l2_norm = torch.pow(sum(torch.pow(state - target, 2)), 1 / 2)
-    return -l2_norm
-
-
-def dense_reward_simple(state, target=Tensor([0, 19])):
-    device = state.device
-    target = target.to(device)
-    l2_norm = torch.pow(sum(torch.pow(state[:2] - target, 2)), 1 / 2)
+    l2_norm = torch.pow(sum(torch.pow(state[:goal_dim] - target, 2)), 1 / 2)
     return -l2_norm
 
 
@@ -200,8 +193,8 @@ def done_judge_low(goal):
     return Tensor([done])
 
 
-def success_judge(state, target=Tensor([0, 19])):
-    location = state[:2]
+def success_judge(state, goal_dim, target=Tensor([0, 19, 0.5])):
+    location = state[:goal_dim]
     l2_norm = torch.pow(sum(torch.pow(location - target, 2)), 1 / 2)
     done = (l2_norm <= 5.)
     return Tensor([done])
@@ -323,7 +316,7 @@ def train(params):
     c, episode_len, max_timestep, start_timestep, discount, batch_size, \
     log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger = initialize_params(params, device)
     target_q_h, critic_loss_h, actor_loss_h = None, None, None
-    target_pos = Tensor([0, 19]).to(device)
+    target_pos = Tensor([0, 19, 0.5]).to(device)
     # 1.3 set seeds
     env.seed(policy_params.seed)
     torch.manual_seed(policy_params.seed)
@@ -350,8 +343,8 @@ def train(params):
         # 2.2.2 interact environment
         next_state, _, _, info = env.step(action)
         # 2.2.3 compute step arguments
-        reward_h = dense_reward_simple(state, target=target_pos)
-        done_h = success_judge(state, target_pos)
+        reward_h = dense_reward(state, goal_dim, target=target_pos)
+        done_h = success_judge(state, goal_dim, target_pos)
         next_state, action, reward_h, done_h = Tensor(next_state).to(device), Tensor(action), Tensor([reward_h]), Tensor([done_h])
         intri_reward = intrinsic_reward_simple(state, goal, next_state, goal_dim)
         next_goal = h_function(state, goal, next_state, goal_dim)
@@ -483,8 +476,8 @@ if __name__ == "__main__":
         prefix="test_simple_origGoal_fixedIntriR_posER",
         save_video=True,
         use_cuda=True,
-        # checkpoint="hiro-antpush_test_simple_simpleGoal_simpleIntriR_posR-it(500000)-[2020-07-01 18:51:29.489023].tar"
-        checkpoint=None
+        checkpoint="hiro-antpush_test_simple_origGoal_fixedIntriR_posER-it(400000)-[2020-07-02 04:09:30.904226].tar"
+        # checkpoint=None
     )
 
     wandb.init(project="ziang-hiro-new")
