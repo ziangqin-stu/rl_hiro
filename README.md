@@ -171,10 +171,11 @@ This experiment runs on CPU, the final results should be like this:
 
 <div style="display:flex;">
     <div style="display:flex; margin:auto;">
-        <img src=".\readme_data\td3-idp-reward.png" alt="td3-idp-reward.png" width="600" style="padding: 5px;"/>
-        <img src=".\readme_data\td3-idp-video.gif" alt="td3-idp-video" width="300" style="padding: 5px;"/>
+        <img src=".\readme_data\td3-idp-reward.png" alt="td3-idp-reward.png" width="550" style="padding: 5px;"/>
+        <img src=".\readme_data\td3-idp-video.gif" alt="td3-idp-video" width="250" style="padding: 5px;"/>
     </div>       
 </div>
+
 
 
 ### Play Code & Launch Experiments
