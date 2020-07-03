@@ -8,6 +8,8 @@ import copy
 
 import codecs
 
+import wandb
+
 import hiro
 from test import td3
 from utils import ParamDict, get_env
@@ -17,45 +19,45 @@ from utils import ParamDict, get_env
 # =============================
 parser = argparse.ArgumentParser(description="Specific Hyper-Parameters for PPO training. ")
 # >> experiment parameters
-parser.add_argument('--param_id', default=1, type=int, help='index of parameter that will be loaded from local csv file for this run')
-parser.add_argument('--algorithm', default=None, help='select experiment algorithm: hiro or td3')
-parser.add_argument('--env_name', default=None, help='environment name for this run, choose from AntPush, AntFall, AntMaze')
-parser.add_argument('--state_dim', default=None, type=int, help='environment observation state dimension')
-parser.add_argument('--action_dim', default=None, type=int, help='agent action dimension')
-parser.add_argument('--goal_dim', default=None, type=int, help='environment goal dimension')
+parser.add_argument('--param_id', type=int, help='index of parameter that will be loaded from local csv file for this run')
+parser.add_argument('--algorithm', help='select experiment algorithm: hiro or td3')
+parser.add_argument('--env_name', help='environment name for this run, choose from AntPush, AntFall, AntMaze')
+parser.add_argument('--state_dim', type=int, help='environment observation state dimension')
+parser.add_argument('--action_dim', type=int, help='agent action dimension')
+parser.add_argument('--goal_dim', type=int, help='environment goal dimension')
 parser.add_argument('--save_video', help='whether sample and log episode video intermittently during training')
-parser.add_argument('--video_interval', default=int(2e4), type=int, help='the interval of logging video')
-parser.add_argument('--checkpoint_interval', default=int(1e5), type=int, help='the interval of log checkpoint')
-parser.add_argument('--log_interval', default=1, type=int, help='the interval of print training state to interval')
-parser.add_argument('--checkpoint', default="", help='the file name of checkpoint to be load, set to None if do not load data from local checkpoint')
-parser.add_argument('--prefix', default="test", help='prefix of checkpoint files, used to distinguish different runs')
+parser.add_argument('--video_interval', type=int, help='the interval of logging video')
+parser.add_argument('--checkpoint_interval', type=int, help='the interval of log checkpoint')
+parser.add_argument('--log_interval', type=int, help='the interval of print training state to interval')
+parser.add_argument('--checkpoint', help='the file name of checkpoint to be load, set to None if do not load data from local checkpoint')
+parser.add_argument('--prefix', help='prefix of checkpoint files, used to distinguish different runs')
 parser.add_argument('--use_cuda', help='whether use GPU')
 # >> HIRO algorithm parameters
-parser.add_argument('--seed', default=4321, type=int, help='manual seed')
-parser.add_argument('--max_timestep', default=int(3e4), type=int, help='max training time step')
-parser.add_argument('--start_timestep', default=int(2e4), type=int, help='amount of random filling experience')
-parser.add_argument('--batch_size', default=int(1e2), type=int, help='batch sample size')
-# parser.add_argument('--max_goal', default=None, help='goal boundary')
-parser.add_argument('--max_action', default=30, type=int, help='action boundary')
-parser.add_argument('--c', default=10, type=int, help='high-level policy update interval')
-parser.add_argument('--policy_freq', default=2, type=int, help='delayed policy update interval')
-parser.add_argument('--discount', default=.99, type=float, help='long-horizon reward discount')
-parser.add_argument('--actor_lr', default=1e-4, type=float, help='actor policy learning rate')
-parser.add_argument('--critic_lr', default=1e-3, type=float, help='critic policy learning rate')
-parser.add_argument('--tau', default=5e-3, type=float, help='soft update parameter')
-parser.add_argument('--reward_scal_l', default=1., type=float, help='low-level reward rescale parameter')
-parser.add_argument('--reward_scal_h', default=.1, type=float, help='high-level reward rescale parameter')
-parser.add_argument('--policy_noise_scale', default=.2, type=float, help='target policy smoothing regularization noise scale')
-parser.add_argument('--policy_noise_std', default=1., type=float, help='target policy smoothing regularization noise standard deviation')
-parser.add_argument('--policy_noise_clip', default=0.5, type=float, help='exploration noise boundary')
-parser.add_argument('--expl_noise_std_l', default=1., type=float, help='low-level policy exploration noise standard deviation')
-parser.add_argument('--expl_noise_std_h', default=1., type=float, help='low-level policy exploration noise standard deviation')
+parser.add_argument('--seed', type=int, help='manual seed')
+parser.add_argument('--max_timestep', type=int, help='max training time step')
+parser.add_argument('--start_timestep', type=int, help='amount of random filling experience')
+parser.add_argument('--batch_size', type=int, help='batch sample size')
+# parser.add_argument('--max_goal', help='goal boundary')
+parser.add_argument('--max_action', type=int, help='action boundary')
+parser.add_argument('--c', type=int, help='high-level policy update interval')
+parser.add_argument('--policy_freq', type=int, help='delayed policy update interval')
+parser.add_argument('--discount', type=float, help='long-horizon reward discount')
+parser.add_argument('--actor_lr', type=float, help='actor policy learning rate')
+parser.add_argument('--critic_lr', type=float, help='critic policy learning rate')
+parser.add_argument('--tau', type=float, help='soft update parameter')
+parser.add_argument('--reward_scal_l', type=float, help='low-level reward rescale parameter')
+parser.add_argument('--reward_scal_h', type=float, help='high-level reward rescale parameter')
+parser.add_argument('--policy_noise_scale', type=float, help='target policy smoothing regularization noise scale')
+parser.add_argument('--policy_noise_std', type=float, help='target policy smoothing regularization noise standard deviation')
+parser.add_argument('--policy_noise_clip', type=float, help='exploration noise boundary')
+parser.add_argument('--expl_noise_std_l', type=float, help='low-level policy exploration noise standard deviation')
+parser.add_argument('--expl_noise_std_h', type=float, help='low-level policy exploration noise standard deviation')
 # >> TD3 algorithm special parameters
-parser.add_argument('--expl_noise_std_scale', default=0.1, type=float, help='exploration noise standard derivation scale')
-parser.add_argument('--lr_td3', default=0.1, type=float, help='td3 learning rate')
-parser.add_argument('--max_action_td3', default=1, type=float, help='td3 action boundary')
-parser.add_argument('--state_dim_td3', default=None, type=int, help='td3 learning rate')
-parser.add_argument('--action_dim_td3', default=None, type=int, help='td3 learning rate')
+parser.add_argument('--expl_noise_std_scale', type=float, help='exploration noise standard derivation scale')
+parser.add_argument('--lr_td3', type=float, help='td3 learning rate')
+parser.add_argument('--max_action_td3', type=float, help='td3 action boundary')
+parser.add_argument('--state_dim_td3', type=int, help='td3 learning rate')
+parser.add_argument('--action_dim_td3', type=int, help='td3 learning rate')
 # >> parse arguments
 args = parser.parse_args()
 
@@ -223,6 +225,7 @@ def cmd_run(params):
     print("    -------------------------------------------------")
     print("    Policy-Params: {}".format(params.policy_params))
     print("=========================================================")
+    wandb.init(project="ziang-hiro-new")
     if args.algorithm == 'td3':
         td3.train(params)
     elif args.algorithm == 'hiro':

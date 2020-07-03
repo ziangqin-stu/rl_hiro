@@ -476,7 +476,7 @@ if __name__ == "__main__":
         prefix="test_simple_origGoal_fixedIntriR_posER",
         save_video=True,
         use_cuda=True,
-        checkpoint="hiro-antpush_test_simple_origGoal_fixedIntriR_posER-it(400000)-[2020-07-02 04:09:30.904226].tar"
+        checkpoint="hiro-antpush_test_simple_origGoal_fixedIntriR_posER-it(2000000)-[2020-07-02 20:35:25.673267].tar"
         # checkpoint=None
     )
 

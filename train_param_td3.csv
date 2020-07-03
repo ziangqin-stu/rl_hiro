@@ -1,2 +1,2 @@
 param_id,env_name,state_dim_td3,action_dim_td3,save_video,video_interval,use_cuda,seed,policy_noise_std,policy_noise_scale,expl_noise_std_scale,policy_noise_clip,max_action_td3,discount,policy_freq,tau,lr_td3,max_timestep,start_timestep,batch_size
-1,InvertedDoublePendulum-v2,11,1,TRUE,5.00E+03,FALSE,123,0.1,0.2,0.1,0.5,1,0.99,2,5.00E-03,3.00E-04,5.00E+04,2.50E+04,100
+1,InvertedDoublePendulum-v2,11,1,TRUE,5000,FALSE,0,0.1,0.2,0.1,0.5,1,0.99,2,5e-3,3e-4,50000,25000,100

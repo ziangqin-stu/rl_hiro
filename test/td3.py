@@ -60,9 +60,8 @@ def step_update(experience_buffer, batch_size, total_it, actor_eval, actor_targe
     return y, critic_loss, actor_loss
 
 
-def train(params):success rate (average)
+def train(params):
     # Initialize
-    wandb.init(project="ziang-hiro-new")
     policy_params = params.policy_params
     env = get_env(params.env_name)
     video_log_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
