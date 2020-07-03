@@ -1,4 +1,4 @@
-# Off-Policy Understanding: From Q-Learning to HIRO Implementation
+# Value-Based RL: From Q-Learning to HIRO Implementation (developing)
 
 HIRO is a variant of HRL witch is more useful than vanilla HRL. It uses all state-of-the-art techniques to achieve the best result. Understanding and implementing this algorithm from scratch is a little hard to me. I write this document to help clearing my mind. 
 
@@ -13,7 +13,6 @@ Contents:
 
 Future contents:
 
-* contents list
 * DQN
   * how to handle sparse reward under TD settings?
 
@@ -212,77 +211,3 @@ over DDPG. The main purpose is to leverage overestimate / unstable Q value probl
 
 ## HIRO: Variant of HRL using off-policy algorithm
 
-### Novelty
-
-* Apply off-policy algorithm(TD3) in HRL framework to improve data efficiency and generalization ability.
-* Propose off-policy correction to address non-stationary between low-level / high-level policies.
-
-### Settings
-
-### Implementation
-
-### Algorithm
-
-**Algorithm HIRO**
-
-​		Initialize critic networks $Q_{\theta_1^{low}}$, $Q_{\theta_2^{low}}$, $Q_{\theta_2^{high}}$, $Q_{\theta_2^{high}}$ and actor networks $\mu_{\phi_1^{low}}$, $\mu_{\phi_2^{low}}$, $\mu_{\phi_1^{high}}$, $\mu_{\phi_1^{high}}$ with random $\theta s$ and $\phi s$ 
-
-​		Initialize target networks $\theta_1^{'low} \leftarrow \theta_1{low}$,  $\theta_2^{'low} \leftarrow \theta_2{low}$,  $\theta_1^{'high} \leftarrow \theta_1^{high}$,  $\theta_2^{'high} \leftarrow \theta_2{high}$, $\phi_1^{'low} \leftarrow \phi_1{low}$, $\ldots$
-
-​		Initialize replay buffer $\Beta^{low}$, $\Beta^{high}$
-
-​		**for** $t = 1$ **to** $T$ **do**
-
-​				select action with exploration noise $a_t \sim \mu(s_t, g_t) + \epsilon, \epsilon \sim \N(0, \sigma)$
-
-​				observe reward $r$ and new state $s_{t+1}$, store transition tuple $(s, g, a, r, s', g')$ in $\Beta_{low}$
-
-​				select goal with exploration noise  $g_t \sim \mu(s_{t-c:t}, g_{t-c:t}) + \epsilon, \epsilon \sim \N(0, \sigma)$
-
-​				**if** $t$ mod $c$ **then**
-
-​						apply off-policy correction $\hat{g} = correction(g)$, store transition tuple $(s_{t-c:t}, g_{t-c:t}, a_{t-c:t}, r_{t-c:t}, s_{t+c})$ in $\Beta_{high}$
-
-​				**end if**
-
-​				sample mini-batch of $N$ transactions $(s, g, a, r, s', g')$ from $\Beta_{low}$
-
-​				$\hat{a} \leftarrow \mu_{\phi'}(s', g') + \epsilon, \epsilon \in \text{clip}(\N(0, \hat{\sigma}), -k, k)$
-
-​				$y^{low} \leftarrow r + \gamma \text{min}_{i=1,2}Q_{\theta_i'}(s', g', \hat{a})$
-
-​				update critics $\theta_i^{low} \leftarrow \text{argmin}_{\theta_i^{low}}N^{-1}\sum{(y^{low}-Q_{\theta_i^{low}}(s,a, g)})^2$ 
-
-​				**if** $t$ mod $d$ **then**
-
-​						update $\phi^{low}$ by the deterministic policy gradient:
-
-​						soft update target network
-
-​				**end if** 
-
-​				**if** $t$ mod $c$ **then**
-
-​						sample mini-batch of $N$ transactions $(s_{t-c:t}, g_{t-c:t}, a_{t-c:t}, r_{t-c:t}, s_{t+c})$ from $\Beta_{high}$
-
-​						$\hat{g'} \leftarrow \mu_{\phi'}(s_{t-c:t}', g'_{t-c:t}) + \epsilon, \epsilon \in \text{clip}(\N(0, \hat{\sigma}), -k, k)$
-
-​						$y^{high} \leftarrow r + \gamma \text{min}_{i=1,2}Q_{\theta_i'}(s'_{t-c:t}, g'_{t-c:t}, \hat{g'}_{t-c:t})$
-
-​						update critics $\theta_i^{high} \leftarrow \text{argmin}_{\theta_i^{high}}N^{-1}\sum{(y^{high}-Q_{\theta_i^{high}}(s_{t-c:t}, g_{t-c:t}, a_{t-c:t})})^2$ 
-
-​						**if** $t$ mod $d$ **then**
-
-​								update $\phi^{high}$ by the deterministic policy gradient:
-
-​								soft update target network
-
-​						**end if** 
-
-​				**end if**
-
-​		**end for**
-
-​		
-
-​		 

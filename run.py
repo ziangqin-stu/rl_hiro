@@ -3,16 +3,12 @@ The default entrance of project
 """
 import argparse
 import csv
-
 import copy
-
-import codecs
-
 import wandb
-
 import hiro
-from test import td3
+import td3
 from utils import ParamDict, get_env
+
 
 # =============================
 # Command-Line Argument Binding
@@ -20,7 +16,7 @@ from utils import ParamDict, get_env
 parser = argparse.ArgumentParser(description="Specific Hyper-Parameters for PPO training. ")
 # >> experiment parameters
 parser.add_argument('--param_id', type=int, help='index of parameter that will be loaded from local csv file for this run')
-parser.add_argument('--algorithm', help='select experiment algorithm: hiro or td3')
+parser.add_argument('--alg', help='select experiment alg: hiro or td3')
 parser.add_argument('--env_name', help='environment name for this run, choose from AntPush, AntFall, AntMaze')
 parser.add_argument('--state_dim', type=int, help='environment observation state dimension')
 parser.add_argument('--action_dim', type=int, help='agent action dimension')
@@ -32,12 +28,12 @@ parser.add_argument('--log_interval', type=int, help='the interval of print trai
 parser.add_argument('--checkpoint', help='the file name of checkpoint to be load, set to None if do not load data from local checkpoint')
 parser.add_argument('--prefix', help='prefix of checkpoint files, used to distinguish different runs')
 parser.add_argument('--use_cuda', help='whether use GPU')
-# >> HIRO algorithm parameters
+# >> HIRO alg parameters
 parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--max_timestep', type=int, help='max training time step')
 parser.add_argument('--start_timestep', type=int, help='amount of random filling experience')
+parser.add_argument('--episode_len', type=int, help='max number of time steps of an episode')
 parser.add_argument('--batch_size', type=int, help='batch sample size')
-# parser.add_argument('--max_goal', help='goal boundary')
 parser.add_argument('--max_action', type=int, help='action boundary')
 parser.add_argument('--c', type=int, help='high-level policy update interval')
 parser.add_argument('--policy_freq', type=int, help='delayed policy update interval')
@@ -52,7 +48,7 @@ parser.add_argument('--policy_noise_std', type=float, help='target policy smooth
 parser.add_argument('--policy_noise_clip', type=float, help='exploration noise boundary')
 parser.add_argument('--expl_noise_std_l', type=float, help='low-level policy exploration noise standard deviation')
 parser.add_argument('--expl_noise_std_h', type=float, help='low-level policy exploration noise standard deviation')
-# >> TD3 algorithm special parameters
+# >> TD3 alg special parameters
 parser.add_argument('--expl_noise_std_scale', type=float, help='exploration noise standard derivation scale')
 parser.add_argument('--lr_td3', type=float, help='td3 learning rate')
 parser.add_argument('--max_action_td3', type=float, help='td3 action boundary')
@@ -62,19 +58,20 @@ parser.add_argument('--action_dim_td3', type=int, help='td3 learning rate')
 args = parser.parse_args()
 
 
-# =========================
-# Read Parameters from File
-# =========================
-bool_params_list = ['save_video', 'use_cuda']
+# =================
+# Assign Parameters
+# =================
+bool_params_list = ['save_video', 'use_cuda', 'checkpoint']
 true_strings = ['True', 'true', 'TRUE']
 false_string = ['False', 'false', 'FALSE']
 none_string = ['None', 'none', 'NONE']
-max_goal = [
-        10., 10., .5,  # 0-2
-        1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,  # 3-13
-        30, 30, 30, 30, 30, 30, 30,  # 14-20
-        30, 30, 30, 30, 30, 30, 30, 30,  # 21-28
-        1.]  # 29
+max_goal = [10., 10., .5]
+# max_goal = [
+#         10., 10., .5,  # 0-2
+#         1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,  # 3-13
+#         30, 30, 30, 30, 30, 30, 30,  # 14-20
+#         30, 30, 30, 30, 30, 30, 30, 30,  # 21-28
+#         1.]  # 29
 
 
 def bool_args_preprocess(args):
@@ -101,19 +98,24 @@ def bool_params_preprocess(file_param):
     global true_strings
     global false_string
     for param_name in bool_params_list:
-        param = file_param[param_name]
-        if param is not None:
-            if param in true_strings:
-                file_param[param_name] = True
-            elif param in false_string:
-                file_param[param_name] = False
-            else:
-                raise ValueError('CSV boolean argument typo.')
+        try:
+            param = file_param[param_name]
+            if param is not None:
+                if param in true_strings:
+                    file_param[param_name] = True
+                elif param in false_string:
+                    file_param[param_name] = False
+                elif param in none_string:
+                    file_param[param_name] = None
+                else:
+                    raise ValueError('CSV boolean argument typo.')
+        except Exception as e:
+            pass
 
 
 def load_params(index):
     # load $ package training arguments
-    if args.algorithm == 'td3':
+    if args.alg == 'td3':
         f = open('./train_param_td3.csv', 'r', encoding='utf-8')
         with f:
             # read parameters from file
@@ -153,14 +155,14 @@ def load_params(index):
                 video_interval=args.video_interval if args.video_interval is not None else int(file_param['video_interval']),
                 use_cuda=args.use_cuda if args.use_cuda is not None else file_param['use_cuda']
             )
-    elif args.algorithm == 'hiro':
+    elif args.alg == 'hiro':
         f = open('./train_param_hiro.csv', 'r')
 
         with f:
             # read parameters from file
             reader = csv.DictReader(f)
             rows = [row for row in reader]
-            file_param = rows[index]
+            file_param = rows[index-1]
             bool_args_preprocess(args)
             bool_params_preprocess(file_param)
             # load environment info
@@ -169,6 +171,7 @@ def load_params(index):
             state_dim = env.observation_space.shape[0]
             goal_dim = 3
             action_dim = env.action_space.shape[0]
+            max_action = float(env.action_space.high[0])
             # build parameter container
             policy_params = ParamDict(
                 seed=args.seed if args.seed is not None else int(file_param['seed']),
@@ -178,8 +181,8 @@ def load_params(index):
                 expl_noise_std_l=args.expl_noise_std_l if args.expl_noise_std_l is not None else float(file_param['expl_noise_std_l']),
                 expl_noise_std_h=args.expl_noise_std_h if args.expl_noise_std_h is not None else float(file_param['expl_noise_std_h']),
                 policy_noise_clip=args.policy_noise_clip if args.policy_noise_clip is not None else float(file_param['policy_noise_clip']),
-                max_action=None,
-                max_goal=None,
+                max_action=max_action,
+                max_goal=max_goal,
                 discount=args.discount if args.discount is not None else float(file_param['discount']),
                 policy_freq=args.policy_freq if args.policy_freq is not None else int(file_param['policy_freq']),
                 tau=args.tau if args.tau is not None else float(file_param['tau']),
@@ -207,7 +210,7 @@ def load_params(index):
                 checkpoint=args.checkpoint if args.checkpoint is not None else file_param['checkpoint']
             )
     else:
-        raise ValueError("algorithm name should be either 'hiro' or 'td3'!")
+        raise ValueError("alg(algorithm name) name should be either 'hiro' or 'td3'!")
     return params, policy_params
 
 
@@ -215,26 +218,22 @@ def load_params(index):
 # Run Experiment
 # ==============
 def cmd_run(params):
-    print("    >> function 'cmd_run' under developing...")
     training_param = copy.deepcopy(params)
     del training_param['policy_params']
     print("=========================================================")
-    print("Start Training {}: env={}, #update={}".format(args.algorithm.upper(), params.env_name, params.policy_params.max_timestep))
+    print("Start Training {}: env={}, #update={}".format(args.alg.upper(), params.env_name, params.policy_params.max_timestep))
     print("    -------------------------------------------------")
     print("    Training-Params: {}".format(training_param))
     print("    -------------------------------------------------")
     print("    Policy-Params: {}".format(params.policy_params))
     print("=========================================================")
     wandb.init(project="ziang-hiro-new")
-    if args.algorithm == 'td3':
+    if args.alg == 'td3':
         td3.train(params)
-    elif args.algorithm == 'hiro':
+    elif args.alg == 'hiro':
         hiro.train(params)
     else:
-        raise ValueError("algorithm name should be either 'hiro' or 'td3'!")
-    print(">=================================<")
-    print("Training Finished!: alg=PPO, env={}, #update={}".format(params.env_name, params.iter_num))
-    print(">=================================<")
+        raise ValueError("alg(algorithm name) name should be either 'hiro' or 'td3'!")
 
 
 # =============

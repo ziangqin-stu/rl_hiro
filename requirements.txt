@@ -1,3 +1,4 @@
+wandb
 torch==1.4.0
 PyVirtualDisplay==0.2.5
 mujoco_py==2.0.2.10

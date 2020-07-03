@@ -72,7 +72,6 @@ class ActorLow(nn.Module):
 
     def forward(self, state, goal):
         # force to reformat input data
-        x = 2
         if not isinstance(state, torch.Tensor): state = torch.Tensor(state)
         if not isinstance(goal, torch.Tensor): state = torch.Tensor(goal)
         # reformat input as batch data
@@ -201,9 +200,3 @@ class CriticHigh(nn.Module):
         # forward propagate
         q1 = self.fc1(obs_action)
         return q1
-
-
-
-
-
-

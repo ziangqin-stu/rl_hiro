@@ -8,7 +8,6 @@ import wandb
 import numpy as np
 import gym
 from environments.create_maze_env import create_maze_env
-from environments.maze_env import MazeEnv
 
 
 class ParamDict(dict):
@@ -60,7 +59,7 @@ class TimeLogger:
 
     def time_spent(self):
         time_span = time.time() - self.start_time
-        print("    >| training time: {} minutes".format(float('%.2f'%(time_span/60))))
+        print("    >| training time: {} minutes".format(float('%.2f' % (time_span/60))))
 
 
 envnames_ant = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']
@@ -71,7 +70,6 @@ envnames_mujoco = ['InvertedPendulum-v2', 'InvertedDoublePendulum-v2', 'Hopper-v
 def get_env(env_name):
     global envnames_ant
     global envnames_mujoco
-    env = None
     if env_name in envnames_ant:
         env = create_maze_env(env_name=env_name)
     elif env_name in envnames_mujoco:
@@ -79,6 +77,16 @@ def get_env(env_name):
     else:
         raise NotImplementedError("environment {} is not supported!".format(env_name))
     return env
+
+
+def get_target_position(env_name):
+    if env_name == 'AntFall':
+        target_pos = torch.Tensor([0, 19, 0.5])
+    elif env_name == 'AntPush':
+        target_pos = torch.Tensor([0, 27, 4.5])
+    else:
+        raise ValueError("{} is either wrong or not implemented!".format(env_name))
+    return target_pos
 
 
 def log_video(env_name, actor):
@@ -192,10 +200,10 @@ def log_video_hrl_debug(env_name, actor_low, actor_high, params):
             # goal = actor_high(state)
             if step < 200:
                 goal = torch.Tensor([-10, 10, 0.5,
-                                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
-                                      0., 0., 0., 0., 0., 0., 0.,  # 14-20
-                                      0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
-                                      0.]).cpu() - torch.Tensor(next_state)
+                                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
+                                     0., 0., 0., 0., 0., 0., 0.,  # 14-20
+                                     0., 0., 0., 0., 0., 0., 0., 0.,  # 21-28
+                                     0.]).cpu() - torch.Tensor(next_state)
             else:
                 goal = torch.Tensor([0, 19, 0.5,
                                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,  # 3-13
@@ -239,6 +247,3 @@ def print_cmd_hint(params, location):
         print("        > reward_h:")
         for i in range(len(reward_h_sequence)):
             print("            {}".format(["%.4f" % elem for elem in reward_h_sequence[i].tolist()]))
-
-
-
