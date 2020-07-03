@@ -80,9 +80,9 @@ def get_env(env_name):
 
 
 def get_target_position(env_name):
-    if env_name == 'AntFall':
+    if env_name == 'AntPush':
         target_pos = torch.Tensor([0, 19, 0.5])
-    elif env_name == 'AntPush':
+    elif env_name == 'AntFall':
         target_pos = torch.Tensor([0, 27, 4.5])
     else:
         raise ValueError("{} is either wrong or not implemented!".format(env_name))
