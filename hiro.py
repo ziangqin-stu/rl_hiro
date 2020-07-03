@@ -400,7 +400,7 @@ def train(params):
             # 2.2.8 collect high-level experience
             goal_hat, updated = off_policy_correction(actor_target_l, action_sequence, state_sequence, goal_dim, goal_sequence[0], next_state, max_goal, device)
             experience_buffer_h.add(state_sequence[0], goal_hat, episode_reward_h, next_state, done_h)
-            if state_print_trigger.good2log(t, 500): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat, reward_h_sequence], location='training_state')
+            # if state_print_trigger.good2log(t, 500): print_cmd_hint(params=[state_sequence, goal_sequence, action_sequence, intri_reward_sequence, updated, goal_hat, reward_h_sequence], location='training_state')
             # 2.2.9 reset segment arguments & log (reward)
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
             print(f"    > Segment: Total T: {t + 1} Episode_L Num: {episode_num_l + 1} Episode_L T: {episode_timestep_l} Reward_L: {float(episode_reward_l):.3f} Reward_H: {float(episode_reward_h):.3f}")
