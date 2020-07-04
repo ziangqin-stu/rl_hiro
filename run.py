@@ -87,10 +87,10 @@ def bool_args_preprocess(args):
                     setattr(args, param_name, True)
                 elif param in false_string:
                     setattr(args, param_name, False)
+                elif param in none_string:
+                    setattr(args, param_name, None)
                 else:
                     raise ValueError('Command line boolean argument typo: {}'.format(param_name))
-            if param in none_string:
-                setattr(args, param_name, None)
         except Exception as e:
             pass
 
@@ -108,10 +108,10 @@ def bool_params_preprocess(file_param):
                     file_param[param_name] = True
                 elif param in false_string:
                     file_param[param_name] = False
+                elif param in none_string:
+                    file_param[param_name] = None
                 else:
                     raise ValueError('CSV boolean argument typo.')
-            if param in none_string:
-                file_param[param_name] = None
         except Exception as e:
             pass
 

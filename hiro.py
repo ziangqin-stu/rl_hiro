@@ -464,7 +464,7 @@ def train(params):
 
 
 if __name__ == "__main__":
-    env_name = "AntPush"
+    env_name = "AntFall"
     env = get_env(env_name)
     state_dim = env.observation_space.shape[0]
     goal_dim = 3
@@ -490,7 +490,7 @@ if __name__ == "__main__":
         reward_scal_h=.1,
         episode_len=1000,
         max_timestep=int(3e6),
-        start_timestep=int(1e5),
+        start_timestep=int(300),
         batch_size=100
     )
     params = ParamDict(
@@ -505,8 +505,8 @@ if __name__ == "__main__":
         prefix="test_simple_origGoal_fixedIntriR_posER",
         save_video=True,
         use_cuda=True,
-        checkpoint="hiro-antpush_test_simple_origGoal_fixedIntriR_posER-it(2000000)-[2020-07-02 20:35:25.673267].tar"
-        # checkpoint=None
+        # checkpoint="hiro-antpush_test_simple_origGoal_fixedIntriR_posER-it(2000000)-[2020-07-02 20:35:25.673267].tar"
+        checkpoint=None
     )
 
     wandb.init(project="ziang-hiro-new")
