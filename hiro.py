@@ -48,8 +48,15 @@ def load_checkpoint(file_name):
         print("\n    > checkpoint file loaded! parsing data...")
         params = checkpoint['params']
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
+        # load utils
+        policy_params = params.policy_params
+        state_dim = params.state_dim
+        goal_dim = params.goal_dim
+        action_dim = params.action_dim
+        max_action = policy_params.max_action
+        max_goal = policy_params.max_goal
         # initialize rl components
-        actor_eval_l = ActorLow(state_dim, goal_dim, action_dim, policy_params.max_action).to(device)
+        actor_eval_l = ActorLow(state_dim, goal_dim, action_dim, max_action).to(device)
         actor_optimizer_l = torch.optim.Adam(actor_eval_l.parameters(), lr=policy_params.actor_lr)
         critic_eval_l = CriticLow(state_dim, goal_dim, action_dim).to(device)
         critic_optimizer_l = torch.optim.Adam(critic_eval_l.parameters(), lr=policy_params.critic_lr)
