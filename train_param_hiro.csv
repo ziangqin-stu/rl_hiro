@@ -1,3 +1,3 @@
 param_id,env_name,state_dim,goal_dim,action_dim,video_interval,log_interval,checkpoint_interval,prefix,save_video,checkpoint_interval,use_cuda,checkpoint,seed,c,policy_noise_scale,policy_noise_std,expl_noise_std_l,expl_noise_std_h,policy_noise_clip,max_action,discount,policy_freq,tau,actor_lr,critic_lr,reward_scal_l,reward_scal_h,episode_len,max_timestep,start_timestep,batch_size
-1,AntPush,30,3,8,10000,5,100000,dneseR,TRUE,100000,TRUE,None,54321,10,0.2,1,1,1,0.5,30,0.99,1,5.00E-03,1.00E-04,1.00E-03,1,0.1,1000,3000000,100000,100
-2,AntFall,30,3,8,10000,5,100000,dneseR,TRUE,100000,TRUE,None,54321,10,0.2,1,1,1,0.5,30,0.99,1,5.00E-03,1.00E-04,1.00E-03,1,0.1,1000,3000000,100000,100
+1,AntPush,30,3,8,10000,5,100000,denseR,TRUE,100000,TRUE,None,54321,10,0.2,1,1,1,0.5,30,0.99,1,5.00E-03,1.00E-04,1.00E-03,1,0.1,1000,3000000,100000,100
+2,AntFall,30,3,8,10000,5,100000,denseR,TRUE,100000,TRUE,None,54321,10,0.2,1,1,1,0.5,30,0.99,1,5.00E-03,1.00E-04,1.00E-03,1,0.1,1000,3000000,100000,100
