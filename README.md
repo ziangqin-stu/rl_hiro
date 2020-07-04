@@ -5,7 +5,7 @@ Implementation practice of RL project, the second project
 ### Contents:
 
 * [Intro to HIRO](# Intro to HIRO)
-* Understand value-based RL method: **[From Q-Learning to TD3](./From Q-Learning to TD3.md)**
+* Understand value-based RL methods: **[From Q-Learning to TD3](./From Q-Learning to TD3.md)**
 * [Implementation structure](#Implementation Structure)
 * [Start to use this code base](# Start to use this code base)
 * [Experiment results](#Experiment Results)
@@ -108,12 +108,12 @@ where $k$ is explore-noise boundary
 
 ## Implementation Structure
 
-The original paper does not explain its algorithm in pseudo-code. To make the algorithm clear and simple, The code structure of this implementation is simpler compared with the original implementation. This implementation basically follows the structure of an off-policy training code structure. Below is a quick view of all crucial python files.
+The code structure of this implementation is simpler compared with the original implementation. This implementation basically follows the structure of an off-policy training code structure. Below is a quick view of all crucial python files.
 
 *  run.py: take in command from a terminal, parse arguments and launch experiments accordingly
-*  hiro.py: training loop is the core code segment. It trains the algorithms and uses services provided by other codes
+*  hiro.py: contains the training loop as the core code segment. It trains the algorithms and uses components provided by other python files
 *  networks.py: holds NNs used in training process
-*  utils.py: holds util classes, functions and frequently used data
+*  utils.py: holds util classes, functions and utility data
 *  experience_buffer.py: holds the experience buffer class
 
 <img src=".\readme_data\code_structure.jpg" alt="code_structure" style="zoom:65%;" />
@@ -121,7 +121,7 @@ The original paper does not explain its algorithm in pseudo-code. To make the al
 **Hint:**
 
 * only uses positional parameters to form goal
-* set delayed parameter update interval to be 1
+* set delayed parameter update interval to 1
 
 ## Start to Use This Code Base
 
@@ -166,7 +166,7 @@ This experiment runs on CPU, the final results should be like this:
 
 
 
-### Play Code & Launch Experiments
+### Launch Experiments & Play Code
 
 #### Command Line Interface
 
@@ -187,9 +187,9 @@ This codebase allows users to run experiments with accessibility to every parame
 
     `(CUDA_VISIBLE_DEVICE=1) python run.py --alg=hiro --param_id=1 --start_timestep=250000 --policy_freq=2`
 
-  * note `td3` algorithm can only run on CPU
+  * note that `td3` algorithm can only run on CPU
 
-* Add your customized experiment settings to `.csv` file to create a convenient baseline of training commands
+* Add your customized experiment settings to `.csv` file to create a convenient baseline for training commands
 
 #### Evaluation
 
@@ -199,13 +199,14 @@ Not implement.
 
 ### Ant Push
 
-* Segment reward (each 10 time steps) for low-level policy:
+* **Segment reward (each $c$=10 time steps) for low-level policy:**
 
 <div style="display:flex;">
     <div style="display:flex; margin:auto;">
         <img src=".\readme_data\hiro-push-epiR_l.png" alt="hiro-push-epiR_l" width="1000" style="padding: 5px;"/>
     </div>
 </div>
+
 
 * Segment reward (each 10 time steps) for high-level policy:
 
@@ -215,11 +216,11 @@ Not implement.
     </div>
 </div>
 
-* Success Rate: (missing)
+* **Success Rate: (missing)**
 
   converge at around 0.6
 
-* Episode Videos:
+* **Episode Videos:**
 
 <div style="display:flex;">
     <div style="display:flex; margin:auto;">
@@ -241,7 +242,12 @@ Not implement.
 
 ## Project Summary
 
-* schedule
+#### Things Done:
+
+#### Laciness:
+
+* schedule ...
 * understanding of paper is essential
 * analyze errors & locate bugs
+* ask too little
 
