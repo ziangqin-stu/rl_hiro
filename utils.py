@@ -29,9 +29,9 @@ class ParamDict(dict):
 
 
 class LoggerTrigger:
-    def __init__(self, start_ind=1):
+    def __init__(self, start_ind=1, first_log=True):
         self.last_log = int(start_ind)
-        self.first_log = False
+        self.first_log = not first_log
 
     def good2log(self, t, interval):
         if int(t / interval) > int(self.last_log / interval):

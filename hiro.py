@@ -116,7 +116,7 @@ def initialize_params(params, device):
     env = get_env(params.env_name)
     video_log_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     state_print_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
-    checkpoint_logger = LoggerTrigger(start_ind=policy_params.start_timestep)
+    checkpoint_logger = LoggerTrigger(start_ind=policy_params.start_timestep, first_log=False)
     time_logger = TimeLogger()
     return [policy_params, env_name, max_goal, action_dim, goal_dim, max_action, expl_noise_std_l, expl_noise_std_h,
             c, episode_len, max_timestep, start_timestep, batch_size,
