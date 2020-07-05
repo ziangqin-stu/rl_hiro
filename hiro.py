@@ -14,10 +14,25 @@ from network import ActorLow, ActorHigh, CriticLow, CriticHigh
 from experience_buffer import ExperienceBufferLow, ExperienceBufferHigh
 
 
+def save_evaluate_utils(step, actor_l, actor_h, params, file_path=None, file_name=None):
+    if file_name is None:
+        time = datetime.datetime.now()
+        file_name = "evalutils-hiro-{}_{}-it({})-[{}].tar".format(params.env_name.lower(), params.prefix, step, time)
+    if file_path is None:
+        file_path = os.path.join(".", "save", "model", file_name)
+    print("\n    > saving evaluation utils...")
+    torch.save({
+        'step': step,
+        'actor_l': actor_l.state_dict(),
+        'actor_h': actor_h.state_dict(),
+    }, file_path)
+    print("    > saved evaluation utils to: {}\n".format(file_path))
+
+
 def save_checkpoint(step, actor_l, critic_l, actor_optimizer_l, critic_optimizer_l, exp_l, actor_h, critic_h, actor_optimizer_h, critic_optimizer_h, exp_h, logger, params, file_path=None, file_name=None):
     if file_name is None:
         time = datetime.datetime.now()
-        file_name = "hiro-{}_{}-it({})-[{}].tar".format(params.env_name.lower(), params.prefix, step, time)
+        file_name = "checkpoint-hiro-{}_{}-it({})-[{}].tar".format(params.env_name.lower(), params.prefix, step, time)
     if file_path is None:
         file_path = os.path.join(".", "save", "model", file_name)
     print("\n    > saving training checkpoint...")
@@ -65,7 +80,7 @@ def load_checkpoint(file_name):
         critic_eval_h = CriticHigh(state_dim, goal_dim).to(device)
         critic_optimizer_h = torch.optim.Adam(critic_eval_h.parameters(), lr=policy_params.critic_lr)
         # unpack checkpoint object
-        step = checkpoint['step']
+        step = checkpoint['step'] + 1
         logger = checkpoint['logger']
         #
         actor_eval_l.load_state_dict(checkpoint['actor_l'])
@@ -111,16 +126,18 @@ def initialize_params(params, device):
     batch_size = policy_params.batch_size
     log_interval = params.log_interval
     checkpoint_interval = params.checkpoint_interval
+    evaluation_interval = params.evaluation_interval
     save_video = params.save_video
     video_interval = params.video_interval
     env = get_env(params.env_name)
     video_log_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     state_print_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     checkpoint_logger = LoggerTrigger(start_ind=policy_params.start_timestep, first_log=False)
+    evalutil_logger = LoggerTrigger(start_ind=params.evaluation_interval, first_log=False)
     time_logger = TimeLogger()
     return [policy_params, env_name, max_goal, action_dim, goal_dim, max_action, expl_noise_std_l, expl_noise_std_h,
             c, episode_len, max_timestep, start_timestep, batch_size,
-            log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger]
+            log_interval, checkpoint_interval, evaluation_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, evalutil_logger, time_logger]
 
 
 def initialize_params_checkpoint(params, device):
@@ -186,7 +203,7 @@ def create_rl_components(params, device):
     critic_eval_h = CriticHigh(state_dim, goal_dim).to(device)
     critic_target_h = copy.deepcopy(critic_eval_h).to(device)
     critic_optimizer_h = torch.optim.Adam(critic_eval_h.parameters(), lr=policy_params.critic_lr)
-    experience_buffer_h = ExperienceBufferHigh(policy_params.max_timestep, state_dim, goal_dim, params.use_cuda)
+    experience_buffer_h = ExperienceBufferHigh(int(policy_params.max_timestep / policy_params.c) + 1, state_dim, goal_dim, params.use_cuda)
 
     return [step, success_number, episode_num_h,
             actor_eval_l, actor_target_l, actor_optimizer_l, critic_eval_l, critic_target_l, critic_optimizer_l, experience_buffer_l,
@@ -338,17 +355,17 @@ def train(params):
         # > running utils
         [policy_params, env_name, max_goal, action_dim, goal_dim, max_action, expl_noise_std_l, expl_noise_std_h,
          c, episode_len, max_timestep, start_timestep, batch_size,
-         log_interval, checkpoint_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, time_logger] = initialize_params(params, device)
+         log_interval, checkpoint_interval, evaluation_interval, save_video, video_interval, env, video_log_trigger, state_print_trigger, checkpoint_logger, evalutil_logger, time_logger] = initialize_params(params, device)
     else:
         # > rl components
         prefix = params.prefix
-        [step, params, device, [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, success_number, episode_num_h],
+        [step, params, device, [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, success_number, episode_num_h],
          actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
          actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h] = load_checkpoint(params.checkpoint)
         # > running utils
         [policy_params, env_name, max_goal, action_dim, goal_dim, max_action, expl_noise_std_l, expl_noise_std_h,
          c, episode_len, max_timestep, start_timestep, batch_size,
-         log_interval, checkpoint_interval, save_video, video_interval, env] = initialize_params_checkpoint(params, device)
+         log_interval, checkpoint_interval, evaluation_interval, save_video, video_interval, env] = initialize_params_checkpoint(params, device)
         params.prefix = prefix
     target_q_h, critic_loss_h, actor_loss_h = None, None, None
     target_pos = get_target_position(env_name).to(device)
@@ -412,11 +429,6 @@ def train(params):
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
             print(f"    > Segment: Total T: {t + 1} Episode_L Num: {episode_num_l + 1} Episode_L T: {episode_timestep_l} Reward_L: {float(episode_reward_l):.3f} Reward_H: {float(episode_reward_h):.3f}")
             if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t - start_timestep)
-            if save_video and video_log_trigger.good2log(t, video_interval):
-                log_video_hrl(env_name, actor_target_l, actor_target_h, params)
-                time_logger.sps(t)
-                time_logger.time_spent()
-                print("")
             episode_reward_l, episode_timestep_l = 0, 0
             episode_reward_h = 0
             episode_num_l += 1
@@ -434,13 +446,11 @@ def train(params):
         # 2.2.12 log training curve (inter_loss)
         if t >= start_timestep and t % log_interval == 0: record_logger(args=[target_q_l, critic_loss_l, actor_loss_l, target_q_h, critic_loss_h, actor_loss_h], option='inter_loss', step=t-start_timestep)
         # 2.2.13 start new episode
-        if bool(done_h) or episode_timestep_h >= episode_len:
-            # > log (success_rate)
-            if bool(done_h): success_number += 1
-            episode_num_h += 1
-            if t > start_timestep: record_logger(args=[Tensor([success_number / episode_num_h])], option='success_rate', step=t-start_timestep)
+        if episode_timestep_h >= episode_len:
+            # > update loggers
+            if t > start_timestep: episode_num_h += 1
             else: episode_num_h = 0
-            print(f"    >>> Episode: Total T: {t + 1} Episode_H Num: {episode_num_h+1} Episode_H T: {episode_timestep_h} Reward_Episode: {float(episode_reward):.3f} Success_Rate: {float(success_number/(episode_num_h+1e-6))}\n")
+            print(f"    >>> Episode: Total T: {t + 1} Episode_H Num: {episode_num_h+1} Episode_H T: {episode_timestep_h} Reward_Episode: {float(episode_reward):.3f}\n")
             # > clear loggers
             episode_reward = 0
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
@@ -450,13 +460,20 @@ def train(params):
         # 2.2.14 update training loop arguments
         episode_timestep_l += 1
         episode_timestep_h += 1
-        # 2.2.15 save checkpoints
+        # 2.2.15 save videos & checkpoints
+        if save_video and video_log_trigger.good2log(t, video_interval):
+            log_video_hrl(env_name, actor_target_l, actor_target_h, params)
+            time_logger.sps(t)
+            time_logger.time_spent()
+            print("")
         if checkpoint_logger.good2log(t, checkpoint_interval):
-            logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, success_number, episode_num_h]
+            logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, success_number, episode_num_h]
             save_checkpoint(t,
-                            actor_eval_l, critic_eval_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
-                            actor_eval_h, critic_eval_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
+                            actor_target_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
+                            actor_target_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
                             logger, params)
+        if t > start_timestep and evalutil_logger.good2log(t, evaluation_interval):
+            save_evaluate_utils(t, actor_target_l, actor_target_h, params)
     # 2.3 final log (episode videos)
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
@@ -502,6 +519,7 @@ if __name__ == "__main__":
         video_interval=int(1e4),
         log_interval=5,
         checkpoint_interval=int(1e5),
+        evaluation_interval=int(5e3),
         prefix="test_simple_origGoal_fixedIntriR_posER",
         save_video=True,
         use_cuda=True,

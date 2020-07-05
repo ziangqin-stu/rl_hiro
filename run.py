@@ -23,7 +23,8 @@ parser.add_argument('--action_dim', type=int, help='agent action dimension')
 parser.add_argument('--goal_dim', type=int, help='environment goal dimension')
 parser.add_argument('--save_video', help='whether sample and log episode video intermittently during training')
 parser.add_argument('--video_interval', type=int, help='the interval of logging video')
-parser.add_argument('--checkpoint_interval', type=int, help='the interval of log checkpoint')
+parser.add_argument('--checkpoint_interval', type=int, help='the interval of logging checkpoint')
+parser.add_argument('--evaluation_interval', type=int, help='the interval of logging evaluation utils')
 parser.add_argument('--log_interval', type=int, help='the interval of print training state to interval')
 parser.add_argument('--checkpoint', help='the file name of checkpoint to be load, set to None if do not load data from local checkpoint')
 parser.add_argument('--prefix', help='prefix of checkpoint files, used to distinguish different runs')
@@ -207,6 +208,7 @@ def load_params(index):
                 video_interval=args.video_interval if args.video_interval is not None else int(file_param['video_interval']),
                 log_interval=args.log_interval if args.log_interval is not None else int(file_param['log_interval']),
                 checkpoint_interval=args.checkpoint_interval if args.checkpoint_interval is not None else int(file_param['checkpoint_interval']),
+                evaluation_interval=args.evaluation_interval if args.evaluation_interval is not None else int(file_param['evaluation_interval']),
                 prefix=args.prefix if args.prefix is not None else file_param['prefix'],
                 save_video=args.save_video if args.save_video is not None else file_param['save_video'],
                 use_cuda=args.use_cuda if args.use_cuda is not None else file_param['use_cuda'],

@@ -29,6 +29,7 @@ class ParamDict(dict):
 
 
 class LoggerTrigger:
+    # trigger log behaviour intermittently
     def __init__(self, start_ind=1, first_log=True):
         self.last_log = int(start_ind)
         self.first_log = not first_log
@@ -87,6 +88,18 @@ def get_target_position(env_name):
     else:
         raise ValueError("{} is either wrong or not implemented!".format(env_name))
     return target_pos
+
+
+def evaluate(actor_l, actor_h):
+    success_number = 0
+    for seed in range(10):
+        for epi in range(5):
+            for t in range(1000):
+                if done:
+                    success_number += 1
+                    break
+    success_rate = torch.Tensor([success_number / 50])
+    return success_rate
 
 
 def log_video(env_name, actor):
