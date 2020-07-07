@@ -133,7 +133,7 @@ def initialize_params(params, device):
     video_log_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     state_print_trigger = LoggerTrigger(start_ind=policy_params.start_timestep)
     checkpoint_logger = LoggerTrigger(start_ind=policy_params.start_timestep, first_log=False)
-    evalutil_logger = LoggerTrigger(start_ind=params.evaluation_interval, first_log=False)
+    evalutil_logger = LoggerTrigger(start_ind=policy_params.start_timestep, first_log=False)
     time_logger = TimeLogger()
     return [policy_params, env_name, max_goal, action_dim, goal_dim, max_action, expl_noise_std_l, expl_noise_std_h,
             c, episode_len, max_timestep, start_timestep, batch_size,
@@ -406,7 +406,7 @@ def train(params):
     print_cmd_hint(params=params, location='start_train')
     time_logger.time_spent()
     total_it = [0]
-    episode_reward_l, episode_reward_h, episode_reward, episode_num_l, episode_timestep_l, episode_timestep_h = 0, 0, 0, 0, 1, 1
+    success_rate, episode_reward_l, episode_reward_h, episode_reward, episode_num_l, episode_timestep_l, episode_timestep_h = 0, 0, 0, 0, 0, 1, 1
     state = Tensor(env.reset()).to(device)
     goal = Tensor(torch.randn(goal_dim)).to(device)
     state_sequence, goal_sequence, action_sequence, intri_reward_sequence, reward_h_sequence = [], [], [], [], []
@@ -471,7 +471,9 @@ def train(params):
             target_q_h, critic_loss_h, actor_loss_h = \
                 step_update_h(experience_buffer_h, batch_size, total_it, actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, critic_optimizer_h, actor_optimizer_h, params)
         # 2.2.12 log training curve (inter_loss)
-        if t >= start_timestep and t % log_interval == 0: record_logger(args=[target_q_l, critic_loss_l, actor_loss_l, target_q_h, critic_loss_h, actor_loss_h], option='inter_loss', step=t-start_timestep)
+        if t >= start_timestep and t % log_interval == 0:
+            record_logger(args=[target_q_l, critic_loss_l, actor_loss_l, target_q_h, critic_loss_h, actor_loss_h], option='inter_loss', step=t-start_timestep)
+            record_logger([success_rate], 'success_rate', step=t - start_timestep)
         # 2.2.13 start new episode
         if episode_timestep_h >= episode_len:
             # > update loggers
@@ -501,7 +503,6 @@ def train(params):
                             logger, params)
         if t > start_timestep and evalutil_logger.good2log(t, evaluation_interval):
             success_rate = evaluate(actor_target_l, actor_target_h, params, device)
-            record_logger([success_rate], 'success_rate', step=t-start_timestep)
     # 2.3 final log (episode videos)
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
