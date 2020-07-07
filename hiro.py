@@ -188,7 +188,7 @@ def create_rl_components(params, device):
     state_dim, goal_dim, action_dim = params.state_dim, params.goal_dim, params.action_dim
     max_goal = Tensor(policy_params.max_goal)
     # low-level
-    step, success_number, episode_num_h = 0, 0, 0
+    step, episode_num_h = 0, 0
     actor_eval_l = ActorLow(state_dim, goal_dim, action_dim, policy_params.max_action).to(device)
     actor_target_l = copy.deepcopy(actor_eval_l).to(device)
     actor_optimizer_l = torch.optim.Adam(actor_eval_l.parameters(), lr=policy_params.actor_lr)
@@ -205,7 +205,7 @@ def create_rl_components(params, device):
     critic_optimizer_h = torch.optim.Adam(critic_eval_h.parameters(), lr=policy_params.critic_lr)
     experience_buffer_h = ExperienceBufferHigh(int(policy_params.max_timestep / policy_params.c) + 1, state_dim, goal_dim, params.use_cuda)
 
-    return [step, success_number, episode_num_h,
+    return [step, episode_num_h,
             actor_eval_l, actor_target_l, actor_optimizer_l, critic_eval_l, critic_target_l, critic_optimizer_l, experience_buffer_l,
             actor_eval_h, actor_target_h, actor_optimizer_h, critic_eval_h, critic_target_h, critic_optimizer_h, experience_buffer_h]
 
@@ -344,12 +344,39 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     return y.detach(), critic_loss.detach(), actor_loss
 
 
+def evaluate(actor_l, actor_h, params, device):
+    policy_params = params.policy_params
+    print("        > evaluating policies...")
+    success_number = 0
+    env = get_env(params.env_name)
+    for i in range(10):
+        env.seed(policy_params.seed + i)
+        for j in range(5):
+            t = 0
+            episode_len = policy_params.episode_len
+            obs, done = Tensor(env.reset()).to(device), False
+            goal = Tensor(torch.randn(params.goal_dim)).to(device)
+            while not done and t < episode_len:
+                t += 1
+                action = actor_l(obs, goal).to(device)
+                obs, _, done, _ = env.step(action.detach().cpu())
+                obs = Tensor(obs).to(device)
+                goal = actor_h(obs)
+            if done:
+                obs, done = Tensor(env.reset()).to(device), False
+                success_number += 1
+        print("        > evaluated {} episodes".format(i * 5 + j + 1))
+    success_rate = success_number / 50
+    print("        > finished evaluation, success rate: {}".format(success_rate))
+    return success_rate
+
+
 def train(params):
     # 1. Initialization
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if params.use_cuda else "cpu"
     if params.checkpoint is None:
         # > rl components
-        [step, success_number, episode_num_h,
+        [step, episode_num_h,
          actor_eval_l, actor_target_l, actor_optimizer_l, critic_eval_l, critic_target_l, critic_optimizer_l, experience_buffer_l,
          actor_eval_h, actor_target_h, actor_optimizer_h, critic_eval_h, critic_target_h, critic_optimizer_h, experience_buffer_h] = create_rl_components(params, device)
         # > running utils
@@ -359,7 +386,7 @@ def train(params):
     else:
         # > rl components
         prefix = params.prefix
-        [step, params, device, [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, success_number, episode_num_h],
+        [step, params, device, [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, episode_num_h],
          actor_eval_l, actor_target_l, critic_eval_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
          actor_eval_h, actor_target_h, critic_eval_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h] = load_checkpoint(params.checkpoint)
         # > running utils
@@ -467,26 +494,18 @@ def train(params):
             time_logger.time_spent()
             print("")
         if checkpoint_logger.good2log(t, checkpoint_interval):
-            logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, success_number, episode_num_h]
+            logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, episode_num_h]
             save_checkpoint(t,
                             actor_target_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
                             actor_target_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
                             logger, params)
         if t > start_timestep and evalutil_logger.good2log(t, evaluation_interval):
-            save_evaluate_utils(t, actor_target_l, actor_target_h, params)
+            success_rate = evaluate(actor_target_l, actor_target_h, params, device)
+            record_logger([success_rate], 'success rate', step)
     # 2.3 final log (episode videos)
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
     print_cmd_hint(params=params, location='end_train')
-
-
-def evaluate_training_history():
-    # actor_l, actor_h, folder_path
-    # load files
-    # sort evaluation util objects
-    # sample trajectories & record success rate
-    # log evaluation indexes
-    pass
 
 
 if __name__ == "__main__":
@@ -528,7 +547,7 @@ if __name__ == "__main__":
         video_interval=int(1e4),
         log_interval=5,
         checkpoint_interval=int(1e5),
-        evaluation_interval=int(5e3),
+        evaluation_interval=int(1e4),
         prefix="test_simple_origGoal_fixedIntriR_posER",
         save_video=True,
         use_cuda=True,

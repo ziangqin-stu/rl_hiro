@@ -66,6 +66,12 @@ class TimeLogger:
 envnames_ant = ['AntBlock', 'AntBlockMaze', 'AntFall', 'AntMaze', 'AntPush']
 envnames_mujoco = ['InvertedPendulum-v2', 'InvertedDoublePendulum-v2', 'Hopper-v2', 'Humanoid-v2', 'Ant-v2',
                    'Reacher-v2', 'HalfCheetah-v2', 'Walker2d-v1']
+# max_goal = [
+#         10., 10., .5,  # 0-2
+#         1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,  # 3-13
+#         30, 30, 30, 30, 30, 30, 30,  # 14-20
+#         30, 30, 30, 30, 30, 30, 30, 30,  # 21-28
+#         1.]  # 29
 
 
 def get_env(env_name):
@@ -88,18 +94,6 @@ def get_target_position(env_name):
     else:
         raise ValueError("{} is either wrong or not implemented!".format(env_name))
     return target_pos
-
-
-def evaluate(actor_l, actor_h):
-    success_number = 0
-    for seed in range(10):
-        for epi in range(5):
-            for t in range(1000):
-                if done:
-                    success_number += 1
-                    break
-    success_rate = torch.Tensor([success_number / 50])
-    return success_rate
 
 
 def log_video(env_name, actor):

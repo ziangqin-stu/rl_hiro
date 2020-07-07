@@ -67,12 +67,6 @@ true_strings = ['True', 'true', 'TRUE']
 false_string = ['False', 'false', 'FALSE']
 none_string = ['None', 'none', 'NONE']
 max_goal = [10., 10., .5]
-# max_goal = [
-#         10., 10., .5,  # 0-2
-#         1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,  # 3-13
-#         30, 30, 30, 30, 30, 30, 30,  # 14-20
-#         30, 30, 30, 30, 30, 30, 30, 30,  # 21-28
-#         1.]  # 29
 
 
 def bool_args_preprocess(args):
