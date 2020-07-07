@@ -234,10 +234,12 @@ def cmd_run(params):
     print("    Policy-Params: {}".format(params.policy_params))
     print("=========================================================")
     wandb.init(project="ziang-hiro-new")
-    if args.alg == 'td3':
+    if args.alg == 'td3_train':
         td3.train(params)
-    elif args.alg == 'hiro':
+    elif args.alg == 'hiro_train':
         hiro.train(params)
+    elif args.alg == 'hiro_eval':
+        pass
     else:
         raise ValueError("alg(algorithm name) name should be either 'hiro_train', 'hiro_eval' or 'td3_train'!")
 
