@@ -163,7 +163,7 @@ This experiment runs on CPU, the final results should be like this:
         <img src=".\readme_data\td3-idp-video.gif" alt="td3-idp-video" width="250" style="padding: 5px;"/>
     </div>       
 </div>
-
+FYI: For TD3, I tested the algorithm with "InvertedPendulum-v2", "InvertedDoublePendulum-v2", "Hopper-v2", "Ant-v2", "Humanoid-v2". All experiments on these environments succeed. 
 
 
 ### Launch Experiments & Play Code
@@ -242,12 +242,28 @@ Not implement.
 
 ## Project Summary
 
-#### Things Done:
+#### Things Learned
 
-#### Laciness:
+* Value-Based RL algorithms and its variants
+* Time Difference optimization method
+* TD3 algorithm implementation
+* HRL/HIRO framework and its implementation
 
-* schedule ...
-* understanding of paper is essential
-* analyze errors & locate bugs
-* ask too little
+#### Implementation Skills
 
+* Iteration in development: start with a minimal working set then extend it or strengthen it
+  * helps to quick locate issues
+  * helps to shrink down test-experiments' time
+* Ask for help timely
+
+#### Shortage:
+
+* Not plan well
+  * understanding of paper is not enough before start implement.
+* Too ambitious with implementation speed
+  * hidden logic flaws
+  * wrong algorithm details
+  * repletely debug over same issue
+* Ask too little
+  * waste time and energy
+  * waste opportunity of practicing communication and conclude/present problems 

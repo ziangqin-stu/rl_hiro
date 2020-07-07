@@ -346,7 +346,7 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
 
 def evaluate(actor_l, actor_h, params, device):
     policy_params = params.policy_params
-    print("        > evaluating policies...")
+    print("\n    > evaluating policies...")
     success_number = 0
     env = get_env(params.env_name)
     for i in range(10):
@@ -367,7 +367,7 @@ def evaluate(actor_l, actor_h, params, device):
                 success_number += 1
         print("        > evaluated {} episodes".format(i * 5 + j + 1))
     success_rate = success_number / 50
-    print("        > finished evaluation, success rate: {}".format(success_rate))
+    print("    > finished evaluation, success rate: {}\n".format(success_rate))
     return success_rate
 
 
@@ -455,7 +455,7 @@ def train(params):
             # 2.2.9 reset segment arguments & log (reward)
             state_sequence, action_sequence, intri_reward_sequence, goal_sequence, reward_h_sequence = [], [], [], [], []
             print(f"    > Segment: Total T: {t + 1} Episode_L Num: {episode_num_l + 1} Episode_L T: {episode_timestep_l} Reward_L: {float(episode_reward_l):.3f} Reward_H: {float(episode_reward_h):.3f}")
-            if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t - start_timestep)
+            if t >= start_timestep: record_logger(args=[episode_reward_l, episode_reward_h], option='reward', step=t-start_timestep)
             episode_reward_l, episode_timestep_l = 0, 0
             episode_reward_h = 0
             episode_num_l += 1
@@ -501,7 +501,7 @@ def train(params):
                             logger, params)
         if t > start_timestep and evalutil_logger.good2log(t, evaluation_interval):
             success_rate = evaluate(actor_target_l, actor_target_h, params, device)
-            record_logger([success_rate], 'success rate', step)
+            record_logger([success_rate], 'success_rate', step=t-start_timestep)
     # 2.3 final log (episode videos)
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
