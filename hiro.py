@@ -480,6 +480,15 @@ def train(params):
     print_cmd_hint(params=params, location='end_train')
 
 
+def evaluate_training_history():
+    # actor_l, actor_h, folder_path
+    # load files
+    # sort evaluation util objects
+    # sample trajectories & record success rate
+    # log evaluation indexes
+    pass
+
+
 if __name__ == "__main__":
     env_name = "AntFall"
     env = get_env(env_name)

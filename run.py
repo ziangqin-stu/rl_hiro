@@ -16,7 +16,7 @@ from utils import ParamDict, get_env
 parser = argparse.ArgumentParser(description="Specific Hyper-Parameters for PPO training. ")
 # >> experiment parameters
 parser.add_argument('--param_id', type=int, help='index of parameter that will be loaded from local csv file for this run')
-parser.add_argument('--alg', help='select experiment alg: hiro or td3')
+parser.add_argument('--alg', help='select experiment alg: hiro_train, hiro_eval or td3_train, td3_eval')
 parser.add_argument('--env_name', help='environment name for this run, choose from AntPush, AntFall, AntMaze')
 parser.add_argument('--state_dim', type=int, help='environment observation state dimension')
 parser.add_argument('--action_dim', type=int, help='agent action dimension')
@@ -119,7 +119,7 @@ def bool_params_preprocess(file_param):
 
 def load_params(index):
     # load $ package training arguments
-    if args.alg == 'td3':
+    if args.alg == 'td3_train':
         f = open('./train_param_td3.csv', 'r', encoding='utf-8')
         with f:
             # read parameters from file
@@ -159,9 +159,8 @@ def load_params(index):
                 video_interval=args.video_interval if args.video_interval is not None else int(file_param['video_interval']),
                 use_cuda=args.use_cuda if args.use_cuda is not None else file_param['use_cuda']
             )
-    elif args.alg == 'hiro':
+    elif args.alg == 'hiro_train':
         f = open('./train_param_hiro.csv', 'r')
-
         with f:
             # read parameters from file
             reader = csv.DictReader(f)
@@ -214,8 +213,10 @@ def load_params(index):
                 use_cuda=args.use_cuda if args.use_cuda is not None else file_param['use_cuda'],
                 checkpoint=args.checkpoint if args.checkpoint is not None else file_param['checkpoint']
             )
+    elif args.alg == 'hiro_eval':
+        hiro.evaluate_training_history()
     else:
-        raise ValueError("alg(algorithm name) name should be either 'hiro' or 'td3'!")
+        raise ValueError("alg(algorithm name) name should be either 'hiro_train', 'hiro_eval' or 'td3_train'!")
     return params, policy_params
 
 
@@ -238,7 +239,7 @@ def cmd_run(params):
     elif args.alg == 'hiro':
         hiro.train(params)
     else:
-        raise ValueError("alg(algorithm name) name should be either 'hiro' or 'td3'!")
+        raise ValueError("alg(algorithm name) name should be either 'hiro_train', 'hiro_eval' or 'td3_train'!")
 
 
 # =============
