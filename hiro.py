@@ -363,7 +363,6 @@ def evaluate(actor_l, actor_h, params, target_pos, device):
                 obs, _, _, _ = env.step(action.detach().cpu())
                 obs = Tensor(obs).to(device)
                 done = success_judge(obs, goal_dim, target_pos)
-                obs = Tensor(obs).to(device)
                 goal = actor_h(obs)
             if done:
                 success_number += 1
