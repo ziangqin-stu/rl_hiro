@@ -361,11 +361,11 @@ def evaluate(actor_l, actor_h, params, target_pos, device):
                 t += 1
                 action = actor_l(obs, goal).to(device)
                 obs, _, _, _ = env.step(action.detach().cpu())
+                obs = Tensor(obs).to(device)
                 done = success_judge(obs, goal_dim, target_pos)
                 obs = Tensor(obs).to(device)
                 goal = actor_h(obs)
             if done:
-                obs, done = Tensor(env.reset()).to(device), False
                 success_number += 1
         print("        > evaluated {} episodes".format(i * 5 + j + 1))
     success_rate = success_number / 50
