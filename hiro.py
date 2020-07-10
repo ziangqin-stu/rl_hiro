@@ -344,22 +344,24 @@ def step_update_h(experience_buffer, batch_size, total_it, actor_eval, actor_tar
     return y.detach(), critic_loss.detach(), actor_loss
 
 
-def evaluate(actor_l, actor_h, params, device):
+def evaluate(actor_l, actor_h, params, target_pos, device):
     policy_params = params.policy_params
     print("\n    > evaluating policies...")
     success_number = 0
     env = get_env(params.env_name)
+    goal_dim = params.goal_dim
     for i in range(10):
         env.seed(policy_params.seed + i)
         for j in range(5):
             t = 0
             episode_len = policy_params.episode_len
             obs, done = Tensor(env.reset()).to(device), False
-            goal = Tensor(torch.randn(params.goal_dim)).to(device)
+            goal = Tensor(torch.randn(goal_dim)).to(device)
             while not done and t < episode_len:
                 t += 1
                 action = actor_l(obs, goal).to(device)
-                obs, _, done, _ = env.step(action.detach().cpu())
+                obs, _, _, _ = env.step(action.detach().cpu())
+                done = success_judge(obs, goal_dim, target_pos)
                 obs = Tensor(obs).to(device)
                 goal = actor_h(obs)
             if done:
@@ -502,7 +504,7 @@ def train(params):
                             actor_target_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
                             logger, params)
         if t > start_timestep and evalutil_logger.good2log(t, evaluation_interval):
-            success_rate = evaluate(actor_target_l, actor_target_h, params, device)
+            success_rate = evaluate(actor_target_l, actor_target_h, params, target_pos, device)
     # 2.3 final log (episode videos)
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
