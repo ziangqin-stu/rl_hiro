@@ -248,7 +248,6 @@ Not implement.
       </div>
   </div> 
 
-
   The Y-axis of the above plot is the low-level policy reward for each $c $ steps. This reward does not ascend since it is depend on how high-level policy selects goal, and this goal selecting process is independent with low-level policy. The learning process of low-level policy is not clearly reflected in this curve. But we can see the agent learned how to move in episode video.
 
 * **Episode Videos:**
@@ -256,31 +255,30 @@ Not implement.
 
   * Learn how to walk:
 
-  <div style="display:flex;">
-      <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-init.gif" alt="hiro-push-init" width="350" style="padding: 5px;"/>
-          <img src=".\readme_data\hiro-push-learnmove.gif" alt="hiro-push-learnmove" width="350" style="padding: 5px;"/>
-      </div> 
-  </div>
+      <div style="display:flex;">
+          <div style="display:flex; margin:auto;">
+              <img src=".\readme_data\hiro-push-init.gif" alt="hiro-push-init" width="350" style="padding: 5px;"/>
+              <img src=".\readme_data\hiro-push-learnmove.gif" alt="hiro-push-learnmove" width="350" style="padding: 5px;"/>
+          </div> 
+      </div>
 
-  * Try different paths
+  * Try different paths:
 
-  <div style="display:flex;">
-      <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-straight_3.gif" alt="hiro-push-straight" width="350" style="padding: 5px;"/>
-          <img src=".\readme_data\hiro-push-right.gif" alt="hiro-push-right" width="350" style="padding: 5px;"/>
-      </div> 
-  </div>
+      <div style="display:flex;">
+          <div style="display:flex; margin:auto;">
+              <img src=".\readme_data\hiro-push-straight_3.gif" alt="hiro-push-straight" width="350" style="padding: 5px;"/>
+              <img src=".\readme_data\hiro-push-right.gif" alt="hiro-push-right" width="350" style="padding: 5px;"/>
+          </div> 
+      </div>
 
-  * Practice the correct path
+  * Practice the correct path:
 
-  <div style="display:flex;">
-  	<div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-correcttry.gif" alt="hiro-push-correcttry" width="350" style="padding: 5px;"/>
-          <img src=".\readme_data\hiro-push-success_2.gif" alt="hiro-push-success" width="350" style="padding: 5px;"/>
-      </div>     
-  </div>
-
+      <div style="display:flex;">
+      	<div style="display:flex; margin:auto;">
+              <img src=".\readme_data\hiro-push-correcttry.gif" alt="hiro-push-correcttry" width="350" style="padding: 5px;"/>
+              <img src=".\readme_data\hiro-push-success_2.gif" alt="hiro-push-success" width="350" style="padding: 5px;"/>
+          </div>     
+      </div>
 
 ### Ant Fall (waiting)
 
