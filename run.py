@@ -87,7 +87,7 @@ def bool_args_preprocess(args):
                 else:
                     raise ValueError('Command line boolean argument typo: {}'.format(param_name))
         except Exception as e:
-            pass
+            print(e)
 
 
 def bool_params_preprocess(file_param):
@@ -108,7 +108,7 @@ def bool_params_preprocess(file_param):
                 else:
                     raise ValueError('CSV boolean argument typo.')
         except Exception as e:
-            pass
+            print(e)
 
 
 def load_params(index):
@@ -208,7 +208,7 @@ def load_params(index):
                 checkpoint=args.checkpoint if args.checkpoint is not None else file_param['checkpoint']
             )
     elif args.alg == 'hiro_eval':
-        hiro.evaluate_training_history()
+        pass
     else:
         raise ValueError("alg(algorithm name) name should be either 'hiro_train', 'hiro_eval' or 'td3_train'!")
     return params, policy_params

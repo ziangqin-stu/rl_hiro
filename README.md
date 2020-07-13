@@ -141,7 +141,7 @@ clone this codebase:
 
 > git clone https://github.com/ziangqin-stu/impl_data-effiient-hrl.git
 
-go to */impl_data-effiient-hrl*, install required packages:
+go to */impl_hirol*, install required packages:
 
 > pip install -e requirements.txt
 
@@ -160,10 +160,21 @@ This experiment runs on CPU, the final results should be like this:
 <div style="display:flex;">
     <div style="display:flex; margin:auto;">
         <img src=".\readme_data\td3-idp-reward.png" alt="td3-idp-reward.png" width="550" style="padding: 5px;"/>
-        <img src=".\readme_data\td3-idp-video.gif" alt="td3-idp-video" width="250" style="padding: 5px;"/>
+        <img src=".\readme_data\td3-idp.gif" alt="td3-idp" width="250" style="padding: 5px;"/>
     </div>       
 </div>
-FYI: For TD3, I tested the algorithm with "InvertedPendulum-v2", "InvertedDoublePendulum-v2", "Hopper-v2", "Ant-v2", "Humanoid-v2". All experiments on these environments succeed. 
+
+I tested the TD3 algorithm implementation with "InvertedPendulum-v2", "InvertedDoublePendulum-v2", "Hopper-v2", "Ant-v2", "Humanoid-v2", all experiments are successful:
+
+  <div style="display:flex;">
+      <div style="display:flex; margin:auto;">
+          <img src=".\readme_data\td3-ip.gif" alt="td3-ip" width="250" style="padding: 5px;"/>
+          <img src=".\readme_data\td3-hopper.gif" alt="td3-hopper" width="250" style="padding: 5px;"/>
+          <img src=".\readme_data\td3-ant.gif" alt="td3-ant" width="250" style="padding: 5px;"/>
+          <img src=".\readme_data\td3-humanoid.gif" alt="td3-humanoid" width="250" style="padding: 5px;"/>
+      </div> 
+  </div>
+
 
 
 ### Launch Experiments & Play Code
@@ -199,46 +210,78 @@ Not implement.
 
 ### Ant Push
 
+* **Evaluation Success Rate**
+
+  <div style="display:flex;">
+      <div style="display:flex; margin:auto;">
+          <img src=".\readme_data\hiro-push-success.png" alt="hiro-push-success" width="800" style="padding: 5px;"/>
+          <img src=".\readme_data\paper-fig4.png" alt="paper-fig4" width="400" style="padding: 5px;"/>
+      </div>
+  </div>
+
+
+  Evaluate policies every 10k steps, each time run 50 episodes with 5 random seed (10 episode each). The success condition is the same with that in HIRO paper. 
+
+  The result shows my experiment reaches a higher success rate (~ 0.8, original result ~ 0.6), but takes more steps to find correct path.
+
+  The experiment is super sensitive to random seed. I select seed to be 0, 123, 1234, 54321, only seed = 0 and seed = 123 works.
+
+* **Segment reward (each 10 time steps) for high-level policy:**
+
+  <div style="display:flex;">
+      <div style="display:flex; margin:auto;">
+          <img src=".\readme_data\hiro-push-epiR_h.png" alt="hiro-push-epiR_h" width="800" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-epiR_h_detail.png" alt="hiro-push-epiR_h_detail" width="400" style="padding: 5px;"/>
+      </div>
+  </div>
+
+  The Y-axis of the above plot is the high-level policy reward for each $c $ steps. The left image shows the detail of this reward curve: In an episode, high-level reward ascends from ~190 (agent at initial state (0, 0), target state (0, 19), L2 distance is ~19, accumulated high-level reward is ~($19*c$)$=190$) to 90 (agent push the movable block forward and be blocked at around (0, 10)), or to less than 50 (agent walk in target room).
+
+
 * **Segment reward (each $c$=10 time steps) for low-level policy:**
 
-<div style="display:flex;">
-    <div style="display:flex; margin:auto;">
-        <img src=".\readme_data\hiro-push-epiR_l.png" alt="hiro-push-epiR_l" width="1000" style="padding: 5px;"/>
-    </div>
-</div>
+  <div style="display:flex;">
+      <div style="display:flex; margin:auto;">
+          <img src=".\readme_data\hiro-push-epiR_l.png" alt="hiro-push-epiR_l" width="800" style="padding: 5px;"/>
+      </div>
+  </div> 
 
-
-* Segment reward (each 10 time steps) for high-level policy:
-
-<div style="display:flex;">
-    <div style="display:flex; margin:auto;">
-        <img src=".\readme_data\hiro-push-epiR_h.png" alt="hiro-push-epiR_h" width="1000" style="padding: 5px;"/>
-    </div>
-</div>
-
-* **Success Rate: (missing)**
-
-  converge at around 0.6
+  The Y-axis of the above plot is the low-level policy reward for each $c $ steps. This reward does not ascend since it is depend on how high-level policy selects goal, and this goal selecting process is independent with low-level policy. The learning process of low-level policy is not clearly reflected in this curve. But we can see the agent learned how to move in episode video.
 
 * **Episode Videos:**
 
-<div style="display:flex;">
-    <div style="display:flex; margin:auto;">
-        <img src=".\readme_data\hiro-push-straight.gif" alt="hiro-push-straight" width="350" style="padding: 5px;"/>
-        <img src=".\readme_data\hiro-push-correcttry.gif" alt="hiro-push-correcttry" width="350" style="padding: 5px;"/>
-    </div> 
-</div>
 
-<div style="display:flex;">
-	<div style="display:flex; margin:auto;">
-        <img src=".\readme_data\hiro-push-success.gif" alt="hiro-push-success" width="350" style="padding: 5px;"/>
-        <img src=".\readme_data\hiro-push-success_2.gif" alt="hiro-push-success" width="350" style="padding: 5px;"/>
-    </div>     
-</div>
+  * Learn how to walk:
+
+  <div style="display:flex;">
+      <div style="display:flex; margin:auto;">
+          <img src=".\readme_data\hiro-push-init.gif" alt="hiro-push-init" width="350" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-learnmove.gif" alt="hiro-push-learnmove" width="350" style="padding: 5px;"/>
+      </div> 
+  </div>
+
+  * Try different paths
+
+  <div style="display:flex;">
+      <div style="display:flex; margin:auto;">
+          <img src=".\readme_data\hiro-push-straight_3.gif" alt="hiro-push-straight" width="350" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-right.gif" alt="hiro-push-right" width="350" style="padding: 5px;"/>
+      </div> 
+  </div>
+
+  * Practice the correct path
+
+  <div style="display:flex;">
+  	<div style="display:flex; margin:auto;">
+          <img src=".\readme_data\hiro-push-correcttry.gif" alt="hiro-push-correcttry" width="350" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-success_2.gif" alt="hiro-push-success" width="350" style="padding: 5px;"/>
+      </div>     
+  </div>
+
 
 ### Ant Fall (waiting)
 
-
+​	No success experiment for now
 
 ## Project Summary
 

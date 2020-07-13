@@ -498,13 +498,16 @@ def train(params):
             print("")
         if checkpoint_logger.good2log(t, checkpoint_interval):
             logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, episode_num_h]
-            save_checkpoint(t,
-                            actor_target_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
+            save_checkpoint(t, actor_target_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
                             actor_target_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
                             logger, params)
         if t > start_timestep and evalutil_logger.good2log(t, evaluation_interval):
             success_rate = evaluate(actor_target_l, actor_target_h, params, target_pos, device)
     # 2.3 final log (episode videos)
+    logger = [time_logger, state_print_trigger, video_log_trigger, checkpoint_logger, evalutil_logger, episode_num_h]
+    save_checkpoint(max_timestep, actor_target_l, critic_target_l, actor_optimizer_l, critic_optimizer_l, experience_buffer_l,
+                    actor_target_h, critic_target_h, actor_optimizer_h, critic_optimizer_h, experience_buffer_h,
+                    logger, params)
     for i in range(3):
         log_video_hrl(env_name, actor_target_l, actor_target_h, params)
     print_cmd_hint(params=params, location='end_train')
