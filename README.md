@@ -1,3 +1,15 @@
+<head>
+    <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            inlineMath: [['$','$']]
+            }
+        });
+    </script>
+</head>
+
 # Implementation: Data-Efficient Hierarchical Reinforcement Learning
 
 Implementation practice of RL project, the second project
@@ -12,7 +24,7 @@ Implementation practice of RL project, the second project
 
 ## Intro to HIRO
 
-Original Paper: https://arxiv.org/abs/1805.08296
+Original Paper: [Data Efficient HRL](https://arxiv.org/abs/1805.08296)
 
 ### General Intro
 
