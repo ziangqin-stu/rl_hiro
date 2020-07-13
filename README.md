@@ -168,10 +168,10 @@ I tested the TD3 algorithm implementation with "InvertedPendulum-v2", "InvertedD
 
   <div style="display:flex;">
       <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\td3-ip.gif" alt="td3-ip" width="250" style="padding: 5px;"/>
-          <img src=".\readme_data\td3-hopper.gif" alt="td3-hopper" width="250" style="padding: 5px;"/>
-          <img src=".\readme_data\td3-ant.gif" alt="td3-ant" width="250" style="padding: 5px;"/>
-          <img src=".\readme_data\td3-humanoid.gif" alt="td3-humanoid" width="250" style="padding: 5px;"/>
+          <img src=".\readme_data\td3-ip.gif" alt="td3-ip" width="200" style="padding: 5px;"/>
+          <img src=".\readme_data\td3-hopper.gif" alt="td3-hopper" width="200" style="padding: 5px;"/>
+          <img src=".\readme_data\td3-ant.gif" alt="td3-ant" width="200" style="padding: 5px;"/>
+          <img src=".\readme_data\td3-humanoid.gif" alt="td3-humanoid" width="200" style="padding: 5px;"/>
       </div> 
   </div>
 
@@ -214,8 +214,8 @@ Not implement.
 
   <div style="display:flex;">
       <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-success.png" alt="hiro-push-success" width="800" style="padding: 5px;"/>
-          <img src=".\readme_data\paper-fig4.png" alt="paper-fig4" width="400" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-success.png" alt="hiro-push-success" width="600" style="padding: 5px;"/>
+          <img src=".\readme_data\paper-fig4.png" alt="paper-fig4" width="350" style="padding: 5px;"/>
       </div>
   </div>
 
@@ -230,11 +230,12 @@ Not implement.
 
   <div style="display:flex;">
       <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-epiR_h.png" alt="hiro-push-epiR_h" width="800" style="padding: 5px;"/>
-          <img src=".\readme_data\hiro-push-epiR_h_detail.png" alt="hiro-push-epiR_h_detail" width="400" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-epiR_h.png" alt="hiro-push-epiR_h" width="600" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-epiR_h_detail.png" alt="hiro-push-epiR_h_detail" width="350" style="padding: 5px;"/>
       </div>
   </div>
 
+  
   The Y-axis of the above plot is the high-level policy reward for each $c $ steps. The left image shows the detail of this reward curve: In an episode, high-level reward ascends from ~190 (agent at initial state (0, 0), target state (0, 19), L2 distance is ~19, accumulated high-level reward is ~($19*c$)$=190$) to 90 (agent push the movable block forward and be blocked at around (0, 10)), or to less than 50 (agent walk in target room).
 
 
