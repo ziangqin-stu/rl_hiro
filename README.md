@@ -5,10 +5,10 @@ Implementation practice of RL project, the second project
 ### Contents:
 
 * [Intro to HIRO](# Intro to HIRO)
-* Understand value-based RL methods: **[From Q-Learning to TD3](valueRL.md)**
-* [Implementation structure](#Implementation Structure)
-* [Start to use this code base](# Start to use this code base)
-* [Experiment results](#Experiment Results)
+* Understand **[value-based RL](valueRL.md)** methods
+* [Implementation structure](#implementation-structure)
+* [Start to use this code base](# start-to-use-this-code-base)
+* [Experiment results](#experiment-results)
 
 ## Intro to HIRO
 
