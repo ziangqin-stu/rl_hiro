@@ -5,7 +5,7 @@ Implementation practice of RL project, the second project
 ### Contents:
 
 * [Intro to HIRO](# Intro to HIRO)
-* Understand value-based RL methods: **[From Q-Learning to TD3](./From Q-Learning to TD3.md)**
+* Understand value-based RL methods: **[From Q-Learning to TD3](valueRL.md)**
 * [Implementation structure](#Implementation Structure)
 * [Start to use this code base](# Start to use this code base)
 * [Experiment results](#Experiment Results)
@@ -186,7 +186,7 @@ This codebase allows users to run experiments with accessibility to every parame
 
 * Check `train_param_td3.csv` and `train_param_hiro.csv` to select arguments for TD3 or HIRO training 
 
-  * you can check `run.py` line 15-55 to understand these parameters
+  * you can check `run.py` line 18-57 to understand these parameters
   * each line of the parameters is a complete experiment setting, remember `param_id` of the setting you select for future use
 
 * Launch an experiment from terminal
