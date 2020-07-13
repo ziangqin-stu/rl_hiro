@@ -177,6 +177,7 @@ I tested the TD3 algorithm implementation with "InvertedPendulum-v2", "InvertedD
 
 
 
+
 ### Launch Experiments & Play Code
 
 #### Command Line Interface
@@ -214,8 +215,8 @@ Not implement.
 
   <div style="display:flex;">
       <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-success.png" alt="hiro-push-success" width="600" style="padding: 5px;"/>
-          <img src=".\readme_data\paper-fig4.png" alt="paper-fig4" width="350" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-success.png" alt="hiro-push-success" width="550" style="padding: 5px;"/>
+          <img src=".\readme_data\paper-fig4.png" alt="paper-fig4" width="250" style="padding: 5px;"/>
       </div>
   </div>
 
@@ -230,8 +231,8 @@ Not implement.
 
   <div style="display:flex;">
       <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-epiR_h.png" alt="hiro-push-epiR_h" width="600" style="padding: 5px;"/>
-          <img src=".\readme_data\hiro-push-epiR_h_detail.png" alt="hiro-push-epiR_h_detail" width="350" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-epiR_h.png" alt="hiro-push-epiR_h" width="550" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-epiR_h_detail.png" alt="hiro-push-epiR_h_detail" width="250" style="padding: 5px;"/>
       </div>
   </div>
 
@@ -243,9 +244,10 @@ Not implement.
 
   <div style="display:flex;">
       <div style="display:flex; margin:auto;">
-          <img src=".\readme_data\hiro-push-epiR_l.png" alt="hiro-push-epiR_l" width="800" style="padding: 5px;"/>
+          <img src=".\readme_data\hiro-push-epiR_l.png" alt="hiro-push-epiR_l" width="550" style="padding: 5px;"/>
       </div>
   </div> 
+
 
   The Y-axis of the above plot is the low-level policy reward for each $c $ steps. This reward does not ascend since it is depend on how high-level policy selects goal, and this goal selecting process is independent with low-level policy. The learning process of low-level policy is not clearly reflected in this curve. But we can see the agent learned how to move in episode video.
 
