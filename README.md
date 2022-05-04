@@ -49,27 +49,27 @@ The original paper does not explain its algorithm in pseudo-code. To make the al
 
 ​		Initialize target networks $\theta_1^{'lo} \leftarrow \theta_1^{lo}$,  $\theta_2^{'lo} \leftarrow \theta_2^{lo}$,  $\theta_1^{'high} \leftarrow \theta_1^{hi}$,  $\theta_2^{'hi} \leftarrow \theta_2{hi}$, $\phi_1^{'lo} \leftarrow \phi_1^{lo}$, $\ldots$
 
-​		Initialize replay buffer $\Beta^{lo}$, $\Beta^{hi}$
+​		Initialize replay buffer $\beta^{lo}$, $\beta^{hi}$
 
 ​		**for** $t = 1$ **to** $T$ **do**
 
-​				select action with explore-noise $a_t \sim \mu(s_t, g_t) + \epsilon, \epsilon \sim \N(0, \sigma)$
+​				select action with explore-noise $a_t \sim \mu(s_t, g_t) + \epsilon, \epsilon \sim N(0, \sigma)$
 
-​				observe reward $r$ and new state $s_{t+1}$, store tuple $(s_t, g_t, a, r, s_{t+1}, g_{t+1})$ in $\Beta_{lo}$
+​				observe reward $r$ and new state $s_{t+1}$, store tuple $(s_t, g_t, a, r, s_{t+1}, g_{t+1})$ in $\beta_{lo}$
 
-​				select next goal via goal transition model with explore-noise  $g_{t+1} \sim h(s_{t}, g_{t}, s_{t+1}) + \epsilon, \epsilon \sim \N(0, \sigma)$
+​				select next goal via goal transition model with explore-noise  $g_{t+1} \sim h(s_{t}, g_{t}, s_{t+1}) + \epsilon, \epsilon \sim N(0, \sigma)$
 
 ​				**if** $t$ mod $c$ **then**
 
-​						generate next  goal via $\mu^{hi}$ with explore-noise  $g_{t+1} \sim \mu(s_{t+1}) + \epsilon, \epsilon \sim \N(0, \sigma)$
+​						generate next  goal via $\mu^{hi}$ with explore-noise  $g_{t+1} \sim \mu(s_{t+1}) + \epsilon, \epsilon \sim N(0, \sigma)$
 
-​						apply off-policy correction $\hat{g} = correction(g)$, store tuple $(s_{t-c+1}, g_{t-c+1}, r_{t-c+1:t}, s_{t+1})$ in $\Beta_{hi}$
+​						apply off-policy correction $\hat{g} = correction(g)$, store tuple $(s_{t-c+1}, g_{t-c+1}, r_{t-c+1:t}, s_{t+1})$ in $\beta_{hi}$
 
 ​				**end if**
 
-​				sample mini-batch of $N$ steps $(s_t, g_t, a, r, s_{t+1}, g_{t+1})$ from $\Beta_{lo}$
+​				sample mini-batch of $N$ steps $(s_t, g_t, a, r, s_{t+1}, g_{t+1})$ from $\beta_{lo}$
 
-​				$\hat{a} \leftarrow \mu_{\phi'}(s', g') + \epsilon, \epsilon \in \text{clip}(\N(0, \hat{\sigma}), -k, k)$
+​				$\hat{a} \leftarrow \mu_{\phi'}(s', g') + \epsilon, \epsilon \in \text{clip}(N(0, \hat{\sigma}), -k, k)$
 
 ​				$y^{lo} \leftarrow r + \gamma \text{min}_{i=1,2}Q_{\theta_i'}(s', g', \hat{a})$
 
@@ -85,9 +85,9 @@ The original paper does not explain its algorithm in pseudo-code. To make the al
 
 ​				**if** $t$ mod $c$ **then**
 
-​						sample mini-batch of $N$ steps $(s_{t-c+1}, g_{t-c+1}, r_{t-c+1:t}, s_{t+1})$ from $\Beta_{hi}$
+​						sample mini-batch of $N$ steps $(s_{t-c+1}, g_{t-c+1}, r_{t-c+1:t}, s_{t+1})$ from $\beta_{hi}$
 
-​						$\hat{g'} \leftarrow \mu_{\phi'}(s') + \epsilon, \epsilon \in \text{clip}(\N(0, \hat{\sigma}), -k, k)$
+​						$\hat{g'} \leftarrow \mu_{\phi'}(s') + \epsilon, \epsilon \in \text{clip}(N(0, \hat{\sigma}), -k, k)$
 
 ​						$y^{hi} \leftarrow r + \gamma \text{min}_{i=1,2}Q_{\theta_i'}(s', \hat{g'})$
 
