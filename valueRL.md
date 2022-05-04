@@ -25,7 +25,7 @@ Future contents:
   * understand
   * why
   * code
-* sarsa
+* SARSA
 * dueling DQN
 * AC/SAC
 * TD3
@@ -227,6 +227,6 @@ HIRO uses off-policy algorithms to improve ???
 
 But using off-policy algorithm also introduces trouble: The high-level policy will generate a different target for lower-policy after it was (high-level policy) updated. HIRO puts forward a straight forward makeup to solve this problem.
 
-### HIRO: XXXX
+### HIRO: todo
 
-### Insights: YYYY
+### Insights: todo
