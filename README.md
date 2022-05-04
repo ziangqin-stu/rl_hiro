@@ -1,7 +1,7 @@
 
 # Implementation: Data-Efficient Hierarchical Reinforcement Learning
 
-Implementation practice of RL project (the second practicing project). It's better to browse in [Typora](https://typora.io/) for math rendering.
+Implementation practice of RL project (the second practicing project). It's better to browse in **[Typora](https://typora.io/)** for math rendering.
 
 ### Contents:
 
