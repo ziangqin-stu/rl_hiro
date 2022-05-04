@@ -1,4 +1,4 @@
-# Value-Based RL: From Q-Learning to HIRO Implementation (developing)
+# (Notes) Value-Based RL: From Q-Learning to HIRO Implementation
 
 HIRO is a variant of HRL witch is more useful than vanilla HRL. It uses all state-of-the-art techniques to achieve the best result. Understanding and implementing this algorithm from scratch is a little hard to me. I write this document to help clearing my mind. 
 

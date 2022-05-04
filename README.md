@@ -1,7 +1,10 @@
 
 # Implementation: Data-Efficient Hierarchical Reinforcement Learning
 
-Implementation practice of RL project (the second practicing project). It's better to browse in **[Typora](https://typora.io/)** for math rendering.
+Implementation practice of RL project (the second practicing project).
+
+- [x] It's better to browse this markdown in **[Typora](https://typora.io/)** for better math rendering.
+- [x] This Repository has been included by [paperswithcode.com](https://paperswithcode.com/paper/data-efficient-hierarchical-reinforcement)!
 
 ### Contents:
 
