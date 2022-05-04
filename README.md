@@ -252,9 +252,9 @@ Not implement.
       </div>
   </div> 
 
-  The Y-axis of the above plot is the low-level policy reward for each $c $ steps. This reward does not ascend since it is depend on how high-level policy selects goal, and this goal selecting process is independent with low-level policy. The learning process of low-level policy is not clearly reflected in this curve. But we can see the agent learned how to move in episode video.
+  The Y-axis of the above plot is the low-level policy reward for each $c $ steps. This reward does not ascend since it is depend on how high-level policy selects goal, and this goal selecting process is independent with low-level policy. The learning process of low-level policy is not clearly reflected in this curve. But we can see the agent learned how to move in episodes video.
 
-* **Episode Videos:**
+* **Episodes Video:**
 
 
   * Learn how to walk:
