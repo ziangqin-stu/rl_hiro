@@ -1,5 +1,5 @@
 numpy==1.18.2
-torch==1.4.0
+torch==1.13.1
 PyVirtualDisplay==0.2.5
 mujoco_py==2.0.2.9
 gym==0.15.7
